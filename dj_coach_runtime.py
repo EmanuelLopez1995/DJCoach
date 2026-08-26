@@ -12,17 +12,24 @@ import mido
 from dj_coach import (
     POLL_INTERVAL_SECONDS,
     SessionRecorder,
+    TimedMidiMessage,
     create_coach_state,
     create_deck_a_state,
     create_deck_b_state,
+    create_deck_tempos_state,
+    create_midi_clock_state,
     evaluate_coach,
     find_djcoach_port,
     iso_timestamp,
     make_continuous_value,
     read_midi_messages,
+    refresh_deck_tempos,
+    refresh_midi_clock,
     update_crossfader,
     update_deck_a,
     update_deck_b,
+    update_deck_tempo_from_beat_phase,
+    update_midi_clock,
 )
 
 
@@ -32,10 +39,12 @@ class DJCoachRuntime:
     def __init__(self) -> None:
         self.lock = threading.RLock()
         self.stop_event = threading.Event()
-        self.incoming: queue.Queue[mido.Message] = queue.Queue()
+        self.incoming: queue.Queue[TimedMidiMessage] = queue.Queue()
         self.deck_a = create_deck_a_state()
         self.deck_b = create_deck_b_state()
         self.crossfader = make_continuous_value()
+        self.midi_clock = create_midi_clock_state()
+        self.deck_tempos = create_deck_tempos_state()
         self.coach = create_coach_state()
         self.recorder = SessionRecorder()
         self.status = "starting"
@@ -96,28 +105,38 @@ class DJCoachRuntime:
             except queue.Empty:
                 first_message = None
 
-            messages: list[mido.Message] = []
+            envelopes = []
             if first_message is not None:
-                messages.append(first_message)
+                envelopes.append(first_message)
                 while True:
                     try:
-                        messages.append(self.incoming.get_nowait())
+                        envelopes.append(self.incoming.get_nowait())
                     except queue.Empty:
                         break
 
             with self.lock:
-                for message in messages:
+                for envelope in envelopes:
+                    message = envelope.message
                     updated = any(
                         (
                             update_deck_a(self.deck_a, message),
                             update_deck_b(self.deck_b, message),
                             update_crossfader(self.crossfader, message),
+                            update_midi_clock(
+                                self.midi_clock, message, envelope.received_at
+                            ),
+                            update_deck_tempo_from_beat_phase(
+                                self.deck_tempos, message, envelope.received_at
+                            ),
                         )
                     )
                     if updated:
                         self.recorder.record_midi(message)
                     self.last_raw_message = str(message)
                     self.last_midi_at = iso_timestamp()
+
+                refresh_midi_clock(self.midi_clock)
+                refresh_deck_tempos(self.deck_tempos)
 
                 _changed, analysis_events = evaluate_coach(
                     self.deck_a,
@@ -137,6 +156,19 @@ class DJCoachRuntime:
                 "deck_a": copy.deepcopy(self.deck_a),
                 "deck_b": copy.deepcopy(self.deck_b),
                 "crossfader": copy.deepcopy(self.crossfader),
+                "midi_clock": {
+                    key: copy.deepcopy(value)
+                    for key, value in self.midi_clock.items()
+                    if not key.startswith("_")
+                },
+                "deck_tempos": {
+                    side: {
+                        key: copy.deepcopy(value)
+                        for key, value in tempo.items()
+                        if not key.startswith("_")
+                    }
+                    for side, tempo in self.deck_tempos.items()
+                },
                 "coach": copy.deepcopy(self.coach),
                 "event_count": len(self.recorder.events),
                 "last_raw_message": self.last_raw_message,
@@ -167,9 +199,10 @@ class DJCoachRuntime:
                     self.deck_a,
                     self.deck_b,
                     self.crossfader,
+                    self.midi_clock,
+                    self.deck_tempos,
                 )
                 self.saved_session_path = str(path)
             except Exception as exc:
                 self.error = f"No se pudo guardar la sesión: {exc}"
             self.status = "stopped"
-

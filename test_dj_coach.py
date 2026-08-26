@@ -116,6 +116,39 @@ class MixerStateTests(unittest.TestCase):
         self.assertEqual(bpm_b, 130.2)
         self.assertEqual(source_b, "BEAT PHASE")
 
+    def test_manual_downbeat_counts_beats_bars_and_phrase_blocks(self) -> None:
+        tempos = dj.create_deck_tempos_state()
+        dj.arm_deck_downbeat(tempos, "a")
+
+        for beat_index in range(33):
+            beat_at = 60.0 + beat_index * 0.5
+            dj.update_deck_tempo_from_beat_phase(
+                tempos, cc(30, 110), beat_at - 0.05
+            )
+            dj.update_deck_tempo_from_beat_phase(
+                tempos, cc(30, 5), beat_at
+            )
+
+        rhythm = tempos["a"]
+        self.assertTrue(rhythm["downbeat_set"])
+        self.assertFalse(rhythm["downbeat_armed"])
+        self.assertEqual(rhythm["beat_in_bar"], 1)
+        self.assertEqual(rhythm["bar_count"], 9)
+        self.assertEqual(rhythm["bar_in_block"], {"4": 1, "8": 1, "16": 9, "32": 9})
+        self.assertEqual(rhythm["block_count"], {"4": 3, "8": 2, "16": 1, "32": 1})
+
+    def test_loading_a_track_clears_rhythm_calibration(self) -> None:
+        tempos = dj.create_deck_tempos_state()
+        dj.arm_deck_downbeat(tempos, "a")
+        dj.update_deck_tempo_from_beat_phase(tempos, cc(30, 110), 80.0)
+        dj.update_deck_tempo_from_beat_phase(tempos, cc(30, 5), 80.1)
+        self.assertTrue(tempos["a"]["downbeat_set"])
+
+        dj.update_deck_tempo_from_beat_phase(tempos, cc(20, 127), 81.0)
+
+        self.assertFalse(tempos["a"]["downbeat_set"])
+        self.assertEqual(tempos["a"]["beat_count"], 0)
+
     def test_unknown_is_different_from_midi_zero(self) -> None:
         deck = dj.create_deck_a_state()
         self.assertFalse(deck["low"]["received"])

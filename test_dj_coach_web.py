@@ -44,6 +44,23 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn('class="success"', page)
         self.assertIn("La fase volvió a una zona alineada.", page)
 
+    def test_dashboard_shows_rhythm_counters(self) -> None:
+        snapshot = web.runtime.snapshot()
+        tempo = snapshot["deck_tempos"]["a"]
+        tempo.update(
+            {
+                "downbeat_set": True,
+                "beat_in_bar": 3,
+                "bar_count": 10,
+                "bar_in_block": {"4": 2, "8": 2, "16": 10, "32": 10},
+                "block_count": {"4": 3, "8": 2, "16": 1, "32": 1},
+            }
+        )
+        page = web.render_dashboard(snapshot)
+        self.assertIn("RITMO 4/4", page)
+        self.assertIn("COMPÁS 10", page)
+        self.assertIn("BLOQUE 32", page)
+
 
 if __name__ == "__main__":
     unittest.main()

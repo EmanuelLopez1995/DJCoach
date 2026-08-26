@@ -107,6 +107,30 @@ def track_progress_widget(deck: dict[str, Any]) -> str:
     </div>"""
 
 
+def rhythm_widget(tempo: dict[str, Any]) -> str:
+    if tempo["downbeat_armed"]:
+        return """
+        <div class="rhythm-widget armed">
+          <div class="rhythm-empty"><strong>ESPERANDO</strong><span>El próximo beat será 1/4</span></div>
+        </div>"""
+    if not tempo["downbeat_set"]:
+        return """
+        <div class="rhythm-widget unknown">
+          <div class="rhythm-empty"><strong>BEAT 1 SIN MARCAR</strong><span>Usá el botón de calibración superior</span></div>
+        </div>"""
+
+    blocks = "".join(
+        f"""
+        <div><span>BLOQUE {size}</span><strong>{tempo['bar_in_block'][str(size)]}/{size}</strong><small>#{tempo['block_count'][str(size)]}</small></div>"""
+        for size in (4, 8, 16, 32)
+    )
+    return f"""
+    <div class="rhythm-widget">
+      <div class="rhythm-current"><span>RITMO 4/4</span><strong>{tempo['beat_in_bar']}/4</strong><small>COMPÁS {tempo['bar_count']}</small></div>
+      <div class="rhythm-blocks">{blocks}</div>
+    </div>"""
+
+
 def deck_card(
     deck: dict[str, Any],
     tempo: dict[str, Any],
@@ -138,6 +162,7 @@ def deck_card(
         <div class="deck-bpm {bpm_class}"><strong>{bpm_value}</strong><span>BPM ACTUAL · {bpm_status} · {bpm_source}</span></div>
       </header>
       {track_progress_widget(deck)}
+      {rhythm_widget(tempo)}
       <div class="mixer-grid">{mixer}</div>
       <div class="state-grid">{states}</div>
       <div class="timing-grid">{timing}</div>
@@ -279,6 +304,7 @@ h1 { margin:2px 0 0; font-size:32px; letter-spacing:.04em; } h2,h3 { margin:0; }
 .deck-card header span { color:var(--accent); font-size:10px; font-weight:800; letter-spacing:.18em; }.deck-card h2 { font-size:25px; }
 .deck-bpm { text-align:right; }.deck-bpm strong { display:block; color:var(--accent); font-family:Consolas,monospace; font-size:25px; line-height:1; }.deck-bpm span { display:block; margin-top:5px; color:var(--muted) !important; font-size:8px !important; letter-spacing:.1em !important; }.deck-bpm.stopped strong { color:#ffb648; }.deck-bpm.unknown { opacity:.5; }
 .track-progress { margin-bottom:16px; padding:12px; border-radius:10px; background:#0a0e14; border:1px solid #1d2530; }.track-progress>div:first-child { display:flex; justify-content:space-between; align-items:center; }.track-progress span { color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.12em; }.track-progress strong { color:var(--accent); font-size:18px; }.progress-track { height:7px; margin:9px 0 6px; overflow:hidden; border-radius:7px; background:#222a35; }.progress-track i { display:block; height:100%; background:var(--accent); box-shadow:0 0 12px var(--accent); }.track-progress small { color:var(--muted); font-family:Consolas,monospace; }
+.rhythm-toolbar { width:min(1440px,calc(100vw - 32px)); margin:12px auto -10px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#0d1219; align-items:center; }.rhythm-toolbar .q-btn { font-size:10px; letter-spacing:.06em; }.rhythm-widget { display:grid; grid-template-columns:120px 1fr; gap:10px; margin-bottom:16px; padding:10px; border:1px solid #1d2530; border-radius:10px; background:#0a0e14; }.rhythm-current { display:grid; align-content:center; text-align:center; border-right:1px solid var(--line); }.rhythm-current span,.rhythm-blocks span { color:var(--muted); font-size:8px; font-weight:800; letter-spacing:.1em; }.rhythm-current strong { color:var(--accent); font-family:Consolas,monospace; font-size:28px; }.rhythm-current small { color:var(--text); }.rhythm-blocks { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }.rhythm-blocks div { display:grid; align-content:center; padding:7px; border-radius:7px; background:#111720; text-align:center; }.rhythm-blocks strong { color:var(--accent); font-family:Consolas,monospace; }.rhythm-blocks small { color:var(--muted); font-size:8px; }.rhythm-empty { grid-column:1/3; display:flex; justify-content:center; gap:10px; color:var(--muted); font-size:10px; }.rhythm-empty strong { color:var(--accent); }.rhythm-widget.armed { border-color:var(--accent); }
 .mixer-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; }
 .control-row { position:relative; padding:9px 10px; background:#0a0e14; border:1px solid #1d2530; border-radius:10px; }
 .control-head { display:flex; justify-content:space-between; font-size:11px; letter-spacing:.08em; }.control-head strong { color:var(--accent); font-size:14px; }
@@ -300,13 +326,43 @@ h1 { margin:2px 0 0; font-size:32px; letter-spacing:.04em; } h2,h3 { margin:0; }
 .warning-log { margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }.warning-log>span { color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.12em; }.warning-log ul { display:grid; gap:7px; margin:9px 0 0; padding:0; list-style:none; }.warning-log li { padding:8px 10px; border-radius:8px; background:#17130d; color:#e8d7b8; font-size:11px; line-height:1.35; }.warning-log li span { display:block; color:#ffb648; font-size:8px; font-weight:800; letter-spacing:.1em; }.warning-log li.empty { background:#0a0e14; color:var(--muted); }
 .warning-log li.success { background:#0d1914; color:#bcebd7; }.warning-log li.success span { color:#32e59d; }
 .debug-strip { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; margin-top:18px; padding:12px 16px; }.debug-strip span { color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.14em; }.debug-strip code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#b9c4d2; }.debug-strip small { color:#667384; }
-@media (max-width:900px) { .decks-layout,.bottom-layout { grid-template-columns:1fr; }.state-grid { grid-template-columns:repeat(2,1fr); }.topbar { align-items:flex-start; }.top-status { flex-direction:column; }.debug-strip { grid-template-columns:1fr; }.debug-strip small { display:none; } }
+@media (max-width:900px) { .decks-layout,.bottom-layout { grid-template-columns:1fr; }.state-grid { grid-template-columns:repeat(2,1fr); }.topbar { align-items:flex-start; }.top-status { flex-direction:column; }.rhythm-widget { grid-template-columns:1fr; }.rhythm-current { border-right:0; border-bottom:1px solid var(--line); padding-bottom:8px; }.rhythm-blocks { grid-template-columns:repeat(2,1fr); }.debug-strip { grid-template-columns:1fr; }.debug-strip small { display:none; } }
 """
 
 
 @ui.page("/")
 def index() -> None:
     ui.add_css(CSS)
+
+    def mark_downbeat(side: str, name: str) -> None:
+        runtime.arm_downbeat(side)
+        ui.notify(
+            f"Deck {name}: el próximo beat será 1/4",
+            type="positive",
+            position="top",
+        )
+
+    def clear_downbeat(side: str, name: str) -> None:
+        runtime.clear_downbeat(side)
+        ui.notify(f"Contador del Deck {name} reiniciado", position="top")
+
+    with ui.row().classes("rhythm-toolbar"):
+        ui.label("CALIBRACIÓN DE COMPÁS")
+        ui.button(
+            "PRÓXIMO BEAT = 1 · DECK A",
+            on_click=lambda: mark_downbeat("a", "A"),
+        ).props("outline color=cyan")
+        ui.button(
+            "PRÓXIMO BEAT = 1 · DECK B",
+            on_click=lambda: mark_downbeat("b", "B"),
+        ).props("outline color=pink")
+        ui.button(
+            "BORRAR A", on_click=lambda: clear_downbeat("a", "A")
+        ).props("flat")
+        ui.button(
+            "BORRAR B", on_click=lambda: clear_downbeat("b", "B")
+        ).props("flat")
+
     dashboard = ui.html(render_dashboard(runtime.snapshot()), sanitize=False).classes(
         "w-full"
     )

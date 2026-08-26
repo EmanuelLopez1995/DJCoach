@@ -13,6 +13,7 @@ from dj_coach import (
     POLL_INTERVAL_SECONDS,
     SessionRecorder,
     TimedMidiMessage,
+    arm_deck_downbeat,
     create_coach_state,
     create_deck_a_state,
     create_deck_b_state,
@@ -25,6 +26,7 @@ from dj_coach import (
     read_midi_messages,
     refresh_deck_tempos,
     refresh_midi_clock,
+    reset_deck_rhythm,
     update_crossfader,
     update_deck_a,
     update_deck_b,
@@ -175,6 +177,16 @@ class DJCoachRuntime:
                 "last_midi_at": self.last_midi_at,
                 "saved_session_path": self.saved_session_path,
             }
+
+    def arm_downbeat(self, side: str) -> None:
+        with self.lock:
+            arm_deck_downbeat(self.deck_tempos, side)
+
+    def clear_downbeat(self, side: str) -> None:
+        with self.lock:
+            if side not in self.deck_tempos:
+                raise ValueError("El deck debe ser 'a' o 'b'.")
+            reset_deck_rhythm(self.deck_tempos[side])
 
     def stop(self) -> None:
         with self.lock:

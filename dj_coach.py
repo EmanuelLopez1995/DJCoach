@@ -294,6 +294,12 @@ def create_deck_tempo_state() -> dict[str, Any]:
         "active": False,
         "beat_count": 0,
         "updated_at": None,
+        "downbeat_set": False,
+        "downbeat_armed": False,
+        "beat_in_bar": None,
+        "bar_count": None,
+        "bar_in_block": {"4": None, "8": None, "16": None, "32": None},
+        "block_count": {"4": None, "8": None, "16": None, "32": None},
         "_previous_value": None,
         "_last_beat_at": None,
         "_last_message_at": None,
@@ -301,6 +307,7 @@ def create_deck_tempo_state() -> dict[str, Any]:
         "_phase_samples": [],
         "_bpm_estimates": [],
         "_smoothed_bpm": None,
+        "_downbeat_beat_count": None,
     }
 
 
@@ -316,6 +323,15 @@ def update_deck_tempo_from_beat_phase(
     """Calcula el BPM individual detectando ciclos reales de Beat Phase."""
     if message.type != "control_change" or message.channel != 0:
         return False
+
+    loaded_side = {20: "a", 21: "b"}.get(message.control)
+    if loaded_side is not None:
+        state = deck_tempos[loaded_side]
+        reset_deck_tempo_analysis(state)
+        reset_deck_rhythm(state)
+        state["active"] = False
+        state["beat_count"] = 0
+        return True
 
     transport_side = {18: "a", 19: "b"}.get(message.control)
     if transport_side is not None and message.value == 0:
@@ -349,6 +365,7 @@ def update_deck_tempo_from_beat_phase(
         state["_cycle_count"] += 1
         state["beat_count"] += 1
         state["_last_beat_at"] = received_at
+        update_deck_rhythm_on_beat(state)
 
     unwrapped_phase = state["_cycle_count"] + message.value / 127
     samples: list[tuple[float, float]] = state["_phase_samples"]
@@ -405,6 +422,47 @@ def reset_deck_tempo_analysis(state: dict[str, Any]) -> None:
     state["_phase_samples"] = []
     state["_bpm_estimates"] = []
     state["_smoothed_bpm"] = None
+
+
+def reset_deck_rhythm(state: dict[str, Any]) -> None:
+    state["downbeat_set"] = False
+    state["downbeat_armed"] = False
+    state["beat_in_bar"] = None
+    state["bar_count"] = None
+    state["bar_in_block"] = {"4": None, "8": None, "16": None, "32": None}
+    state["block_count"] = {"4": None, "8": None, "16": None, "32": None}
+    state["_downbeat_beat_count"] = None
+
+
+def arm_deck_downbeat(
+    deck_tempos: dict[str, dict[str, Any]], side: str
+) -> None:
+    """Prepara el próximo ciclo de Beat Phase como beat 1 del compás."""
+    if side not in deck_tempos:
+        raise ValueError("El deck debe ser 'a' o 'b'.")
+    state = deck_tempos[side]
+    reset_deck_rhythm(state)
+    state["downbeat_armed"] = True
+
+
+def update_deck_rhythm_on_beat(state: dict[str, Any]) -> None:
+    if state["downbeat_armed"]:
+        state["downbeat_armed"] = False
+        state["downbeat_set"] = True
+        state["_downbeat_beat_count"] = state["beat_count"]
+
+    origin = state["_downbeat_beat_count"]
+    if not state["downbeat_set"] or origin is None:
+        return
+
+    beats_since_downbeat = state["beat_count"] - int(origin)
+    state["beat_in_bar"] = beats_since_downbeat % 4 + 1
+    bar_count = beats_since_downbeat // 4 + 1
+    state["bar_count"] = bar_count
+    for block_size in (4, 8, 16, 32):
+        key = str(block_size)
+        state["bar_in_block"][key] = (bar_count - 1) % block_size + 1
+        state["block_count"][key] = (bar_count - 1) // block_size + 1
 
 
 def refresh_deck_tempos(
@@ -1376,6 +1434,19 @@ def render_dashboard(
         status = "ACTIVO" if active else "DETENIDO"
         return f"{bpm:.1f} BPM   {status} · {source}"
 
+    def rhythm_text(side: str) -> str:
+        tempo = deck_tempos[side]
+        if tempo["downbeat_armed"]:
+            return "Esperando próximo beat = 1/4"
+        if not tempo["downbeat_set"]:
+            return "Beat 1 sin marcar"
+        blocks = tempo["bar_in_block"]
+        return (
+            f"Beat {tempo['beat_in_bar']}/4 · Compás {tempo['bar_count']} · "
+            f"Bloques 4:{blocks['4']}/4 8:{blocks['8']}/8 "
+            f"16:{blocks['16']}/16 32:{blocks['32']}/32"
+        )
+
     lines = [
         "DJ COACH",
         "-" * 40,
@@ -1424,6 +1495,15 @@ def render_dashboard(
         left = format_continuous_control(label, deck_a.get(key))
         right = format_continuous_control(label, deck_b.get(key))
         lines.append(f"{left:<32}{right}")
+
+    lines.extend(
+        [
+            "",
+            "RITMO / COMPASES",
+            f"Deck A: {rhythm_text('a')}",
+            f"Deck B: {rhythm_text('b')}",
+        ]
+    )
 
     lines.extend(
         [

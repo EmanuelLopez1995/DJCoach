@@ -3,6 +3,10 @@
 Monitor local del estado MIDI del mixer de Traktor. Por ahora no utiliza IA ni
 analiza audio.
 
+El estado y los próximos pasos del proyecto se mantienen en
+[ROADMAP.md](ROADMAP.md). Los avisos actuales están documentados en
+[AVISOS_COACH.md](AVISOS_COACH.md).
+
 ## Ejecutar
 
 Con `loopMIDI` abierto y el puerto `djCoach` disponible:

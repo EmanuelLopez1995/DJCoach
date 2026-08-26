@@ -1,0 +1,480 @@
+{
+  "fuente": "14 capturas del menú de asignaciones",
+  "criterio": {
+    "solo_se_incluye_lo_visible_en_las_capturas": true,
+    "si_un_submenu_tiene_flecha_pero_no_fue_abierto": {
+      "abierto": false,
+      "contenido": null,
+      "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+    },
+    "nota_general": "Cuando una captura corta la parte superior o inferior de un menú, se indica como captura_parcial y no se inventan elementos fuera de lo visible."
+  },
+  "menu": {
+    "Deck Common": {
+      "abierto": true,
+      "captura_parcial": true,
+      "submenus": {
+        "Extra": {
+          "abierto": true,
+          "captura_parcial": true,
+          "contenido_visible": [
+            "Freeze Slice Count Adjust",
+            "Slice Trigger 1",
+            "Slice Trigger 2",
+            "Slice Trigger 3",
+            "Slice Trigger 4",
+            "Slice Trigger 5",
+            "Slice Trigger 6",
+            "Slice Trigger 7",
+            "Slice Trigger 8",
+            "Slice Trigger 9",
+            "Slice Trigger 10",
+            "Slice Trigger 11",
+            "Slice Trigger 12",
+            "Slice Trigger 13",
+            "Slice Trigger 14",
+            "Slice Trigger 15",
+            "Slice Trigger 16"
+          ],
+          "nota": "Hay al menos un elemento por encima de 'Freeze Slice Count Adjust' que está cortado y no se lee completo."
+        },
+        "Submix": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        },
+        "Load Selected": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        }
+      },
+      "acciones_visibles": [
+        "Load Next",
+        "Load Previous",
+        "Unload",
+        "Play/Pause",
+        "Cue",
+        "CUP (Cue Play)",
+        "Seek Position",
+        "Jog Touch On",
+        "Jog Turn",
+        "Set as Tempo Master",
+        "Sync On",
+        "Phase Sync",
+        "Tempo Sync",
+        "Tempo Bend",
+        "Tempo Bend (stepless)",
+        "Tempo Adjust",
+        "Tempo Range Selector",
+        "Analyze Loaded Track",
+        "Deck Flavor Selector",
+        "Deck Size Selector",
+        "Advanced Panel Toggle",
+        "Advanced Panel Tab Selector",
+        "Flux Mode On",
+        "Flux State",
+        "Flux Reverse Playback On",
+        "Reverse Playback On",
+        "Phase",
+        "Beat Phase",
+        "Deck Is Loaded",
+        "Is In Active Loop"
+      ]
+    },
+    "Track Deck": {
+      "abierto": true,
+      "submenus": {
+        "Cue": {
+          "abierto": true,
+          "captura_parcial": true,
+          "contenido_visible": [
+            "Set Cue and Store as Next Hotcue",
+            "Store Floating Cue/Loop as Next Hotcue",
+            "Delete current Hotcue",
+            "Move selected Cue Point",
+            "Jump to Next/Prev Cue/Loop",
+            "Map Hotcue",
+            "Select/Set+Store Hotcue",
+            "Delete Hotcue",
+            "Cue Type Selector",
+            "Hotcue 1 Type",
+            "Hotcue 2 Type",
+            "Hotcue 3 Type",
+            "Hotcue 4 Type",
+            "Hotcue 5 Type",
+            "Hotcue 6 Type",
+            "Hotcue 7 Type",
+            "Hotcue 8 Type"
+          ],
+          "nota": "La captura termina en 'Hotcue 8 Type'; si existen más opciones debajo, no se ven."
+        },
+        "Grid": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        }
+      },
+      "acciones_visibles": [
+        "Load, Loop, and Play",
+        "Duplicate Track Deck A",
+        "Duplicate Track Deck B",
+        "Duplicate Track Deck C",
+        "Duplicate Track Deck D",
+        "Track End Warning",
+        "Waveform Zoom Adjust",
+        "DAW View",
+        "Keylock On",
+        "Keylock On (Preserve Pitch)",
+        "Key Adjust",
+        "Semitone Up/Down"
+      ]
+    },
+    "Remix Deck": {
+      "abierto": true,
+      "submenus": {
+        "Legacy": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        },
+        "Direct Mapping": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        },
+        "Step Sequencer": {
+          "abierto": true,
+          "contenido_visible": [
+            "Sequencer On",
+            "Swing Amount",
+            "Current Step",
+            "Selected Sample",
+            "Pattern Length",
+            "Enable Step 1",
+            "Enable Step 2",
+            "Enable Step 3",
+            "Enable Step 4",
+            "Enable Step 5",
+            "Enable Step 6",
+            "Enable Step 7",
+            "Enable Step 8",
+            "Enable Step 9",
+            "Enable Step 10",
+            "Enable Step 11",
+            "Enable Step 12",
+            "Enable Step 13",
+            "Enable Step 14",
+            "Enable Step 15",
+            "Enable Step 16"
+          ]
+        }
+      },
+      "acciones_visibles": [
+        "Save Remix Set",
+        "Load Set from List",
+        "Slot Capture/Trigger/Mute",
+        "Slot Stop/Delete/Load from List",
+        "Slot Retrigger",
+        "Slot Play Mode",
+        "Slot Trigger Type",
+        "Slot State",
+        "Slot Keylock On",
+        "Slot Monitor On",
+        "Slot Punch On",
+        "Quantize Selector",
+        "Quantize On",
+        "Capture Source Selector",
+        "Sample Page Selector"
+      ]
+    },
+    "Mixer": {
+      "abierto": true,
+      "submenus": {
+        "EQ": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        },
+        "X-Fader": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        },
+        "Meters": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        }
+      },
+      "acciones_visibles": [
+        "Gain Adjust",
+        "Auto-Gain Adjust",
+        "Auto-Gain View On",
+        "FX Unit 1 On",
+        "FX Unit 2 On",
+        "FX Unit 3 On",
+        "FX Unit 4 On",
+        "Deck Effect On",
+        "Mixer FX Adjust",
+        "Mixer FX On",
+        "Mixer FX Selector",
+        "Balance Adjust",
+        "Monitor Cue On",
+        "Volume Adjust",
+        "Master Volume Adjust",
+        "Limiter On",
+        "Monitor Volume Adjust",
+        "Monitor Mix Adjust",
+        "Microphone Gain Adjust"
+      ]
+    },
+    "FX Unit": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Unit On",
+        "Dry/Wet Adjust",
+        "Knob 1",
+        "Knob 2",
+        "Knob 3",
+        "Button 1",
+        "Button 2",
+        "Button 3",
+        "Effect 1 Selector",
+        "Effect 2 Selector",
+        "Effect 3 Selector",
+        "FX Unit Mode Selector",
+        "Routing Selector",
+        "Store Effect Snapshot",
+        "Load Effect Snapshot",
+        "Effect LFO Reset"
+      ],
+      "submenus_no_abiertos_visibles": []
+    },
+    "Browser": {
+      "abierto": true,
+      "submenus": {
+        "List": {
+          "abierto": true,
+          "captura_parcial": true,
+          "contenido_visible": [
+            "Reset Played-State",
+            "Analyze",
+            "Analysis Unlock",
+            "Analysis Lock",
+            "Edit",
+            "Relocate",
+            "Add as Track To Collection",
+            "Add as One-Shot Sample To Collection",
+            "Add as Loop To Collection",
+            "Set to One-Shot Sample",
+            "Set to Looped Sample",
+            "Set to Track",
+            "Select Up/Down",
+            "Select Page Up/Down",
+            "Select Top/Bottom",
+            "Select Extend Up/Down",
+            "Select Extend Page Up/Down",
+            "Select Extend Top/Bottom",
+            "Select All",
+            "Consolidate",
+            "Search",
+            "Search Clear",
+            "Search in Playlists",
+            "Show Track In Explorer",
+            "Clear",
+            "Expand Remix Set",
+            "Jump To Current Track",
+            "Append To Preparation List",
+            "Add or Remove Track from Preparation List",
+            "Add As Next To Preparation List",
+            "Export as Remix Set",
+            "Generate Stems",
+            "Delete Associated Stems"
+          ],
+          "nota": "La parte inferior de la captura queda cortada; solo se listan las opciones visibles."
+        },
+        "Tree": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        },
+        "Favorites": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        }
+      }
+    },
+    "Preview Player": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Load Preview Player Into Deck",
+        "Load Selected",
+        "Play/Pause",
+        "Seek Position",
+        "Unload"
+      ],
+      "submenus_no_abiertos_visibles": []
+    },
+    "Loop Recorder": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Record",
+        "Size",
+        "Dry/Wet Adjust",
+        "Play/Pause",
+        "Delete",
+        "Undo/Redo",
+        "Playback Position",
+        "Undo State",
+        "State"
+      ],
+      "submenus_no_abiertos_visibles": []
+    },
+    "Audio Recorder": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Record/Stop",
+        "Cut",
+        "Gain Adjust",
+        "Load Last Recording"
+      ],
+      "submenus_no_abiertos_visibles": []
+    },
+    "Master Clock": {
+      "abierto": true,
+      "submenus": {
+        "Ableton Link": {
+          "abierto": false,
+          "contenido": null,
+          "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+        }
+      },
+      "acciones_visibles": [
+        "Auto Master Mode",
+        "Master Tempo Selector",
+        "Set Master Tempo",
+        "Tempo Bend Up",
+        "Tempo Bend Down",
+        "Beat Tap",
+        "Tick On",
+        "Clock Int/Ext",
+        "Clock Send",
+        "Clock Trigger MIDI Sync"
+      ]
+    },
+    "Global": {
+      "abierto": true,
+      "captura_parcial": true,
+      "submenus": {
+        "MIDI Controls": {
+          "abierto": true,
+          "submenus": {
+            "Buttons": {
+              "abierto": true,
+              "captura_parcial": true,
+              "contenido_visible": [
+                "MIDI Button 1",
+                "MIDI Button 2",
+                "MIDI Button 3",
+                "MIDI Button 4",
+                "MIDI Button 5",
+                "MIDI Button 6",
+                "MIDI Button 7",
+                "MIDI Button 8"
+              ],
+              "nota": "La captura se corta después de MIDI Button 8; no se asume que la lista termine ahí."
+            },
+            "Knobs": {
+              "abierto": false,
+              "contenido": null,
+              "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+            },
+            "Faders": {
+              "abierto": false,
+              "contenido": null,
+              "nota": "No se abrió en las capturas, por lo tanto no se sabe qué contiene."
+            }
+          }
+        }
+      },
+      "acciones_visibles": [
+        "Snap On",
+        "Quant On",
+        "Broadcasting On",
+        "Cruise Mode On",
+        "Show Slider Values On",
+        "Tool Tips On",
+        "Send Monitor State",
+        "Save Traktor Settings"
+      ]
+    },
+    "Layout": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Only Browser On",
+        "Layout Selector",
+        "Fullscreen On",
+        "Deck Focus Selector",
+        "Toggle Last Focus"
+      ],
+      "submenus_no_abiertos_visibles": []
+    },
+    "Modifier": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Modifier #1",
+        "Modifier #2",
+        "Modifier #3",
+        "Modifier #4",
+        "Modifier #5",
+        "Modifier #6",
+        "Modifier #7",
+        "Modifier #8"
+      ],
+      "submenus_no_abiertos_visibles": []
+    },
+    "Pattern Player": {
+      "abierto": true,
+      "acciones_visibles": [
+        "Pattern Player Kit Selector",
+        "Pattern Player Current Step",
+        "Pattern Player Pattern Reset",
+        "Pattern Player Pattern Customized",
+        "Pattern Player Step 1",
+        "Pattern Player Step 2",
+        "Pattern Player Step 3",
+        "Pattern Player Step 4",
+        "Pattern Player Step 5",
+        "Pattern Player Step 6",
+        "Pattern Player Step 7",
+        "Pattern Player Step 8",
+        "Pattern Player Step 9",
+        "Pattern Player Step 10",
+        "Pattern Player Step 11",
+        "Pattern Player Step 12",
+        "Pattern Player Step 13",
+        "Pattern Player Step 14",
+        "Pattern Player Step 15",
+        "Pattern Player Step 16"
+      ],
+      "submenus_no_abiertos_visibles": []
+    }
+  },
+  "submenus_visibles_no_abiertos": [
+    "Deck Common > Submix",
+    "Deck Common > Load Selected",
+    "Track Deck > Grid",
+    "Remix Deck > Legacy",
+    "Remix Deck > Direct Mapping",
+    "Mixer > EQ",
+    "Mixer > X-Fader",
+    "Mixer > Meters",
+    "Browser > Tree",
+    "Browser > Favorites",
+    "Master Clock > Ableton Link",
+    "Global > MIDI Controls > Knobs",
+    "Global > MIDI Controls > Faders"
+  ]
+}

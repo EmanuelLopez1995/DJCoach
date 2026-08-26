@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+sessions/*.json
+.venv/
+.tools/
+assets/canciones_prueba/
+Settings.tsi

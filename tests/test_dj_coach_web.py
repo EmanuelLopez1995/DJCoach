@@ -1,9 +1,35 @@
 import unittest
 
 import dj_coach_web as web
+from djcoach.web.product_pages import render_guidance_moment
 
 
 class WebDashboardTests(unittest.TestCase):
+    def test_guidance_moment_separates_deck_and_mixer_lanes(self) -> None:
+        page = render_guidance_moment(
+            {
+                "actions": [
+                    {
+                        "section": "deck_a",
+                        "instruction": "Bajá HIGH de Deck A",
+                        "outcome": None,
+                    },
+                    {
+                        "section": "deck_b",
+                        "instruction": "Subí HIGH de Deck B",
+                        "outcome": {"status": "completed"},
+                    },
+                ]
+            },
+            "AHORA",
+            "current",
+        )
+        self.assertIn("DECK A", page)
+        self.assertIn("DECK B", page)
+        self.assertIn("MIXER / GLOBAL", page)
+        self.assertIn("Bajá HIGH de Deck A", page)
+        self.assertIn('class="lane-action done"', page)
+
     def test_initial_dashboard_contains_main_sections(self) -> None:
         page = web.render_dashboard(web.runtime.snapshot())
         self.assertIn("DJ COACH", page)

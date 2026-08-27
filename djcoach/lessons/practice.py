@@ -11,7 +11,12 @@ from typing import Any
 from djcoach.domain import Take, TakeRole
 
 from .attempt_repository import AttemptRepository
-from .guidance import GUIDANCE_SCHEMA_VERSION, build_guidance_steps, event_matches_step
+from .guidance import (
+    GUIDANCE_SCHEMA_VERSION,
+    build_guidance_moments,
+    build_guidance_steps,
+    event_matches_step,
+)
 from .repository import LessonRepository
 from .take_repository import TakeRepository
 
@@ -31,10 +36,11 @@ class ActiveStudentAttempt:
     take: Take
     checkpoint: dict[str, Any]
     steps: list[dict[str, Any]]
+    moments: list[dict[str, Any]]
     started_monotonic: float
     processed_event_count: int = 0
     anchor_elapsed_seconds: float | None = None
-    current_index: int = 0
+    current_moment_index: int = 0
     outcomes: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -64,6 +70,7 @@ class GuidedPracticeRecorder:
             steps = build_guidance_steps(reference.features)
             if not steps:
                 raise RuntimeError("La referencia no contiene consignas practicables.")
+            moments = build_guidance_moments(steps)
 
             checkpoint = self.runtime.begin_take_capture()
             snapshot = checkpoint["initial_state"]
@@ -89,27 +96,58 @@ class GuidedPracticeRecorder:
                 take=take,
                 checkpoint=checkpoint,
                 steps=steps,
+                moments=moments,
                 started_monotonic=time.monotonic(),
             )
             return take
 
+    @staticmethod
+    def _outcome_ids(active: ActiveStudentAttempt) -> set[str]:
+        return {str(outcome["step_id"]) for outcome in active.outcomes}
+
+    def _advance_resolved_moments(self, active: ActiveStudentAttempt) -> None:
+        outcome_ids = self._outcome_ids(active)
+        while active.current_moment_index < len(active.moments):
+            moment = active.moments[active.current_moment_index]
+            if not all(action["id"] in outcome_ids for action in moment["actions"]):
+                break
+            active.current_moment_index += 1
+
+    def _record_outcome(
+        self,
+        active: ActiveStudentAttempt,
+        step: dict[str, Any],
+        status: str,
+        timing: str | None = None,
+        student_seconds: float | None = None,
+        delta_seconds: float | None = None,
+    ) -> None:
+        if step["id"] in self._outcome_ids(active):
+            return
+        active.outcomes.append(
+            {
+                "step_id": step["id"],
+                "status": status,
+                "timing": timing,
+                "student_seconds": student_seconds,
+                "delta_seconds": delta_seconds,
+            }
+        )
+
     def _mark_missed_until(
         self, active: ActiveStudentAttempt, student_seconds: float
     ) -> None:
-        while active.current_index < len(active.steps):
-            step = active.steps[active.current_index]
-            if student_seconds <= step["reference_seconds"] + MISSED_AFTER_SECONDS:
+        self._advance_resolved_moments(active)
+        while active.current_moment_index < len(active.moments):
+            moment = active.moments[active.current_moment_index]
+            if student_seconds <= moment["reference_seconds"] + MISSED_AFTER_SECONDS:
                 break
-            active.outcomes.append(
-                {
-                    "step_id": step["id"],
-                    "status": "missed",
-                    "timing": None,
-                    "student_seconds": None,
-                    "delta_seconds": None,
-                }
-            )
-            active.current_index += 1
+            outcome_ids = self._outcome_ids(active)
+            for action in moment["actions"]:
+                if action["id"] not in outcome_ids:
+                    self._record_outcome(active, action, "missed")
+            active.current_moment_index += 1
+            self._advance_resolved_moments(active)
 
     def _refresh(self, active: ActiveStudentAttempt) -> dict[str, Any]:
         capture = self.runtime.peek_take_capture(active.checkpoint)
@@ -131,49 +169,40 @@ class GuidedPracticeRecorder:
                 0.0, event_elapsed - active.anchor_elapsed_seconds
             )
             self._mark_missed_until(active, student_seconds)
-            if active.current_index >= len(active.steps):
+            if active.current_moment_index >= len(active.moments):
                 continue
-            matched_index = next(
+            outcome_ids = self._outcome_ids(active)
+            matched_step = next(
                 (
-                    index
-                    for index in range(active.current_index, len(active.steps))
-                    if active.steps[index]["reference_seconds"]
+                    action
+                    for moment in active.moments[active.current_moment_index :]
+                    if moment["reference_seconds"]
                     <= student_seconds + EARLY_ACTION_WINDOW_SECONDS
-                    and event_matches_step(event, active.steps[index])
+                    for action in moment["actions"]
+                    if action["id"] not in outcome_ids
+                    and event_matches_step(event, action)
                 ),
                 None,
             )
-            if matched_index is not None:
-                while active.current_index < matched_index:
-                    skipped = active.steps[active.current_index]
-                    active.outcomes.append(
-                        {
-                            "step_id": skipped["id"],
-                            "status": "missed",
-                            "timing": None,
-                            "student_seconds": None,
-                            "delta_seconds": None,
-                        }
-                    )
-                    active.current_index += 1
-                step = active.steps[active.current_index]
-                delta = round(student_seconds - step["reference_seconds"], 3)
+            if matched_step is not None:
+                delta = round(
+                    student_seconds - matched_step["reference_seconds"], 3
+                )
                 if delta < -ON_TIME_TOLERANCE_SECONDS:
                     timing = "early"
                 elif delta > ON_TIME_TOLERANCE_SECONDS:
                     timing = "late"
                 else:
                     timing = "on_time"
-                active.outcomes.append(
-                    {
-                        "step_id": step["id"],
-                        "status": "completed",
-                        "timing": timing,
-                        "student_seconds": round(student_seconds, 3),
-                        "delta_seconds": delta,
-                    }
+                self._record_outcome(
+                    active,
+                    matched_step,
+                    "completed",
+                    timing,
+                    round(student_seconds, 3),
+                    delta,
                 )
-                active.current_index += 1
+                self._advance_resolved_moments(active)
 
         active.processed_event_count = len(events)
         if active.anchor_elapsed_seconds is not None:
@@ -198,25 +227,54 @@ class GuidedPracticeRecorder:
             refreshed = self._refresh(active)
             if active.anchor_elapsed_seconds is None:
                 state = "waiting_for_play"
-            elif active.current_index >= len(active.steps):
+            elif active.current_moment_index >= len(active.moments):
                 state = "guidance_complete"
             else:
                 state = "guiding"
             current = (
-                active.steps[active.current_index]
-                if active.current_index < len(active.steps)
+                active.moments[active.current_moment_index]
+                if active.current_moment_index < len(active.moments)
                 else None
             )
             following = (
-                active.steps[active.current_index + 1]
-                if active.current_index + 1 < len(active.steps)
+                active.moments[active.current_moment_index + 1]
+                if active.current_moment_index + 1 < len(active.moments)
                 else None
             )
+            previous_index = (
+                active.current_moment_index - 1
+                if active.current_moment_index > 0
+                else None
+            )
+            previous = (
+                active.moments[previous_index]
+                if previous_index is not None
+                else None
+            )
+            outcomes_by_id = {
+                outcome["step_id"]: outcome for outcome in active.outcomes
+            }
+
+            def present(moment: dict[str, Any] | None) -> dict[str, Any] | None:
+                if moment is None:
+                    return None
+                return {
+                    **moment,
+                    "actions": [
+                        {
+                            **action,
+                            "outcome": outcomes_by_id.get(action["id"]),
+                        }
+                        for action in moment["actions"]
+                    ],
+                }
+
             return {
                 "state": state,
                 "take_id": active.take.id,
-                "current": current,
-                "next": following,
+                "previous": present(previous),
+                "current": present(current),
+                "next": present(following),
                 "student_seconds": refreshed["student_seconds"],
                 "seconds_until_current": (
                     round(
@@ -244,18 +302,10 @@ class GuidedPracticeRecorder:
                 raise RuntimeError("Esta lección no tiene un intento activo.")
             active = self.active
             self._refresh(active)
-            while active.current_index < len(active.steps):
-                step = active.steps[active.current_index]
-                active.outcomes.append(
-                    {
-                        "step_id": step["id"],
-                        "status": "not_attempted",
-                        "timing": None,
-                        "student_seconds": None,
-                        "delta_seconds": None,
-                    }
-                )
-                active.current_index += 1
+            outcome_ids = self._outcome_ids(active)
+            for step in active.steps:
+                if step["id"] not in outcome_ids:
+                    self._record_outcome(active, step, "not_attempted")
 
             result = self.runtime.finish_take_capture(active.checkpoint)
             active.take.ended_at = _timestamp_now()
@@ -272,6 +322,7 @@ class GuidedPracticeRecorder:
                 "schema_version": GUIDANCE_SCHEMA_VERSION,
                 "mode": "guided",
                 "steps": active.steps,
+                "moments": active.moments,
                 "outcomes": active.outcomes,
                 "completed_count": completed,
                 "total_steps": len(active.steps),

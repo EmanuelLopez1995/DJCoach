@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -49,9 +50,10 @@ PRODUCT_CSS = """
 .review-section { display:grid; gap:10px; margin-top:24px; }.review-section h2 { margin:0; font-size:19px; }.timeline-row { display:grid; grid-template-columns:80px 150px 1fr; gap:12px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.timeline-time { color:#7ddfff; font-family:monospace; }.timeline-target { color:#c8d2df; font-weight:700; }.timeline-detail { color:#94a2b3; }
 .approval-panel { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-top:24px; padding:18px; border:1px solid #31506a; border-radius:14px; background:#0d1821; }.approval-state { color:#aeb9c7; }
 .guidance-card { display:grid; gap:10px; margin:20px 0; padding:24px; border:1px solid #ff4fd8; border-radius:18px; background:linear-gradient(145deg,#18101b,#0b1118); }.guidance-state { color:#ff83e4; font-size:11px; font-weight:800; letter-spacing:.14em; }.guidance-action { min-height:58px; color:#fff; font-size:26px; font-weight:800; line-height:1.25; }.guidance-time { color:#ffb4ed; font-family:monospace; }.next-action { padding:14px; border:1px solid #263140; border-radius:11px; color:#93a1b3; background:#0b1118; }.practice-progress { color:#94a2b3; }
+.moment-shell { display:grid; gap:9px; }.moment-title { color:#8fa0b5; font-size:10px; font-weight:800; letter-spacing:.14em; }.moment-lanes { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }.moment-lane { min-height:72px; padding:11px; border:1px solid #263140; border-radius:11px; background:#0b1118; }.moment-lane.deck-a { border-top:2px solid #36d7ff; }.moment-lane.deck-b { border-top:2px solid #ff4fd8; }.moment-lane.mixer { border-top:2px solid #ffb648; }.lane-title { margin-bottom:7px; color:#8996a7; font-size:10px; font-weight:800; letter-spacing:.1em; }.lane-action { display:flex; gap:7px; margin-top:5px; color:#edf2f7; line-height:1.35; }.lane-action.done { color:#58e5a3; }.lane-action.missed { color:#ffb648; }.moment-empty { color:#657386; }.moment-previous,.moment-next { padding:13px; border:1px solid #263140; border-radius:13px; background:#0b1118; opacity:.86; }.moment-current { padding:16px; border:1px solid #ff4fd8; border-radius:15px; background:#120d16; }
 .result-score { color:#ff4fd8; font-size:48px; font-weight:900; }.result-row { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.result-ok { color:#58e5a3; }.result-missed { color:#ffb648; }
 @media(max-width:800px){.mode-grid,.lesson-tracks{grid-template-columns:1fr}.product-header h1{font-size:32px}}
-@media(max-width:800px){.prep-grid,.review-grid{grid-template-columns:1fr}.timeline-row{grid-template-columns:70px 1fr}.timeline-detail{grid-column:1/-1}}
+@media(max-width:800px){.prep-grid,.review-grid,.moment-lanes{grid-template-columns:1fr}.timeline-row{grid-template-columns:70px 1fr}.timeline-detail{grid-column:1/-1}}
 """
 
 
@@ -88,6 +90,51 @@ def section_label(section: str | None) -> str:
         "deck_b": "Deck B",
         "mixer": "Mixer",
     }.get(section or "", section or "General")
+
+
+def render_guidance_moment(
+    moment: dict[str, Any] | None,
+    title: str,
+    variant: str,
+) -> str:
+    if moment is None:
+        return (
+            f'<div class="moment-shell moment-{variant}">'
+            f'<div class="moment-title">{escape(title)}</div>'
+            '<div class="moment-empty">---</div></div>'
+        )
+    lanes = []
+    for section, css_class, label in (
+        ("deck_a", "deck-a", "DECK A"),
+        ("deck_b", "deck-b", "DECK B"),
+        ("mixer", "mixer", "MIXER / GLOBAL"),
+    ):
+        actions = [
+            action for action in moment["actions"] if action["section"] == section
+        ]
+        rendered_actions = []
+        for action in actions:
+            outcome = action.get("outcome")
+            if outcome and outcome["status"] == "completed":
+                icon, state_class = "✓", "done"
+            elif outcome:
+                icon, state_class = "△", "missed"
+            else:
+                icon, state_class = "○", ""
+            rendered_actions.append(
+                f'<div class="lane-action {state_class}"><span>{icon}</span>'
+                f'<span>{escape(str(action["instruction"]))}</span></div>'
+            )
+        body = "".join(rendered_actions) or '<div class="moment-empty">Sin acción</div>'
+        lanes.append(
+            f'<div class="moment-lane {css_class}"><div class="lane-title">'
+            f'{label}</div>{body}</div>'
+        )
+    return (
+        f'<div class="moment-shell moment-{variant}">'
+        f'<div class="moment-title">{escape(title)}</div>'
+        f'<div class="moment-lanes">{"".join(lanes)}</div></div>'
+    )
 
 
 def product_shell(title: str, subtitle: str) -> None:
@@ -673,13 +720,21 @@ def register_product_pages(runtime: Any) -> None:
                     "Presioná Iniciar intento y luego comenzá el Deck A desde Traktor. "
                     "Ese PLAY sincroniza el reloj de la guía."
                 ).classes("prep-intro")
+                previous_moment = ui.html(
+                    render_guidance_moment(None, "ANTERIOR", "previous"),
+                    sanitize=False,
+                ).classes("w-full")
                 with ui.element("div").classes("guidance-card"):
                     guidance_state = ui.label("LISTO").classes("guidance-state")
-                    current_action = ui.label(
-                        "Iniciá el intento cuando tengas ambos tracks preparados"
-                    ).classes("guidance-action")
                     current_time = ui.label().classes("guidance-time")
-                next_action = ui.label("Próxima: ---").classes("next-action")
+                    current_moment = ui.html(
+                        render_guidance_moment(None, "AHORA", "current"),
+                        sanitize=False,
+                    ).classes("w-full")
+                next_moment = ui.html(
+                    render_guidance_moment(None, "PRÓXIMO", "next"),
+                    sanitize=False,
+                ).classes("w-full")
                 practice_progress = ui.label().classes("practice-progress")
                 with ui.element("div").classes("prep-actions"):
                     start_attempt_button = ui.button("INICIAR INTENTO").props(
@@ -722,40 +777,77 @@ def register_product_pages(runtime: Any) -> None:
                     stop_attempt_button.set_enabled(active)
                     if state == "idle":
                         guidance_state.set_text("LISTO PARA EMPEZAR")
-                        current_action.set_text(
-                            "Presioná Iniciar intento cuando estés preparado"
+                        previous_moment.set_content(
+                            render_guidance_moment(None, "ANTERIOR", "previous")
                         )
                         current_time.set_text("")
-                        next_action.set_text("Próxima: ---")
+                        current_moment.set_content(
+                            render_guidance_moment(None, "AHORA", "current")
+                        )
+                        next_moment.set_content(
+                            render_guidance_moment(None, "PRÓXIMO", "next")
+                        )
                         practice_progress.set_text("")
                         return
                     if state == "waiting_for_play":
                         guidance_state.set_text("ESPERANDO SINCRONIZACIÓN")
-                        current_action.set_text("Pulsá PLAY en Deck A")
                         current_time.set_text("La guía comenzará con ese evento")
-                        next_action.set_text("Todavía no se revela la siguiente acción")
+                        previous_moment.set_content(
+                            render_guidance_moment(None, "ANTERIOR", "previous")
+                        )
+                        play_moment = {
+                            "actions": [
+                                {
+                                    "section": "deck_a",
+                                    "instruction": "Pulsá PLAY en Deck A",
+                                    "outcome": None,
+                                }
+                            ]
+                        }
+                        current_moment.set_content(
+                            render_guidance_moment(play_moment, "AHORA", "current")
+                        )
+                        next_moment.set_content(
+                            render_guidance_moment(None, "PRÓXIMO", "next")
+                        )
                     elif state == "guidance_complete":
                         guidance_state.set_text("SECUENCIA COMPLETADA")
-                        current_action.set_text("Detené y revisá tu resultado")
                         current_time.set_text("✓ Todas las consignas fueron recorridas")
-                        next_action.set_text("Próxima: finalizar intento")
+                        previous_moment.set_content(
+                            render_guidance_moment(
+                                status.get("previous"), "ANTERIOR", "previous"
+                            )
+                        )
+                        current_moment.set_content(
+                            render_guidance_moment(None, "AHORA", "current")
+                        )
+                        next_moment.set_content(
+                            render_guidance_moment(None, "PRÓXIMO", "next")
+                        )
                     else:
-                        current = status["current"]
                         seconds_until = float(status["seconds_until_current"])
                         guidance_state.set_text(
-                            "AHORA" if seconds_until <= 0 else "PRÓXIMA ACCIÓN"
+                            "AHORA" if seconds_until <= 0 else "MOMENTO PRÓXIMO"
                         )
-                        current_action.set_text(current["instruction"])
                         current_time.set_text(
                             "Ahora"
                             if seconds_until <= 0
                             else f"En {seconds_until:.0f} segundos"
                         )
-                        following = status.get("next")
-                        next_action.set_text(
-                            f'Luego: {following["instruction"]}'
-                            if following
-                            else "Luego: finalizar la técnica"
+                        previous_moment.set_content(
+                            render_guidance_moment(
+                                status.get("previous"), "ANTERIOR", "previous"
+                            )
+                        )
+                        current_moment.set_content(
+                            render_guidance_moment(
+                                status.get("current"), "AHORA", "current"
+                            )
+                        )
+                        next_moment.set_content(
+                            render_guidance_moment(
+                                status.get("next"), "PRÓXIMO", "next"
+                            )
                         )
                     practice_progress.set_text(
                         f'{status["completed_count"]} completadas · '

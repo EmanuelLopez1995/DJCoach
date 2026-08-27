@@ -12,6 +12,7 @@ from djcoach.lessons import (
     ReferenceTakeRecorder,
     TakeRepository,
     evaluate_preparation,
+    build_guidance_moments,
     build_guidance_steps,
     event_matches_step,
     extract_take_features,
@@ -256,8 +257,11 @@ class LessonDomainTests(unittest.TestCase):
                 steps[0],
             )
         )
+        moments = build_guidance_moments(steps)
+        self.assertEqual(len(moments), 1)
+        self.assertEqual(len(moments[0]["actions"]), 2)
 
-    def test_guided_practice_advances_one_instruction_at_a_time(self) -> None:
+    def test_guided_practice_accepts_simultaneous_actions_in_any_order(self) -> None:
         class FakeRuntime:
             def __init__(self):
                 self.events = []
@@ -353,7 +357,33 @@ class LessonDomainTests(unittest.TestCase):
             )
             runtime.elapsed = 1.0
             status = recorder.status(lesson.id)
-            self.assertEqual(status["current"]["instruction"], "Cerrá LOW de Deck B")
+            self.assertEqual(
+                status["current"]["actions"][0]["instruction"],
+                "Cerrá LOW de Deck B",
+            )
+
+            # Las dos acciones pertenecen al mismo momento y pueden hacerse
+            # en cualquier orden sin bloquearse entre sí.
+            runtime.events.append(
+                {
+                    "type": "midi_change",
+                    "section": "deck_b",
+                    "control": "play",
+                    "value": 127,
+                    "elapsed_seconds": 7.5,
+                }
+            )
+            runtime.elapsed = 7.5
+            status = recorder.status(lesson.id)
+            self.assertEqual(status["completed_count"], 1)
+            pending_actions = [
+                action
+                for action in status["current"]["actions"]
+                if action["outcome"] is None
+            ]
+            self.assertEqual(
+                pending_actions[0]["instruction"], "Cerrá LOW de Deck B"
+            )
 
             runtime.events.append(
                 {
@@ -361,20 +391,6 @@ class LessonDomainTests(unittest.TestCase):
                     "section": "deck_b",
                     "control": "low",
                     "value": 5,
-                    "elapsed_seconds": 6.0,
-                }
-            )
-            runtime.elapsed = 6.0
-            status = recorder.status(lesson.id)
-            self.assertEqual(status["completed_count"], 1)
-            self.assertEqual(status["current"]["instruction"], "Activá PLAY de Deck B")
-
-            runtime.events.append(
-                {
-                    "type": "midi_change",
-                    "section": "deck_b",
-                    "control": "play",
-                    "value": 127,
                     "elapsed_seconds": 8.0,
                 }
             )

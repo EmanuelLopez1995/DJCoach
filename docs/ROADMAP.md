@@ -30,6 +30,8 @@ Traktor.
 - [ ] Interpretar landmarks de alto nivel: entrada, bass swap, FX y salida.
 - [x] Grabar un student attempt guiado y vinculado a la lección.
 - [x] Mostrar una consigna actual y una próxima sin revelar la cronología completa.
+- [x] Agrupar acciones simultáneas y mostrarlas en carriles Deck A, Deck B y Mixer.
+- [x] Mantener visibles el momento anterior, el actual y el próximo.
 - [x] Sincronizar el inicio de la guía con el primer `PLAY` de Deck A.
 - [ ] Comparar reference take contra student attempt con tolerancias.
 - [ ] Mostrar feedback concreto por técnica.

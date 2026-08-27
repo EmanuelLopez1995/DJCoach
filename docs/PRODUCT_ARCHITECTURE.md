@@ -55,6 +55,14 @@ contiene estado inicial, eventos y características técnicas extraídas.
 Comparará un take del alumno contra la referencia de la lección. Trabajará con
 landmarks y curvas tolerantes, no con igualdad exacta entre valores MIDI.
 
+### Práctica guiada
+
+La referencia aprobada se transforma en `GuidanceMoment`: una ventana musical
+que puede contener varias acciones coordinadas. La interfaz conserva un solo
+reloj, pero divide cada momento en carriles Deck A, Deck B y Mixer. Las acciones
+simultáneas se completan independientemente y la vista solo revela el momento
+anterior, el actual y el próximo.
+
 ## Persistencia local
 
 ```text

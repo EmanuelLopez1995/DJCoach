@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 
-GUIDANCE_SCHEMA_VERSION = 1
+GUIDANCE_SCHEMA_VERSION = 2
 GESTURE_MINIMUM_CHANGE = 8
 VALUE_TOLERANCE = 12
+SIMULTANEOUS_WINDOW_SECONDS = 2.5
 
 CONTROL_NAMES = {
     "low": "LOW",
@@ -122,6 +123,32 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
         )
         steps.append(step)
     return steps
+
+
+def build_guidance_moments(
+    steps: list[dict[str, Any]],
+    window_seconds: float = SIMULTANEOUS_WINDOW_SECONDS,
+) -> list[dict[str, Any]]:
+    """Agrupa acciones cercanas sin crear relojes independientes por deck."""
+    moments: list[dict[str, Any]] = []
+    for step in sorted(steps, key=lambda item: item["reference_seconds"]):
+        if (
+            not moments
+            or float(step["reference_seconds"])
+            - float(moments[-1]["reference_seconds"])
+            > window_seconds
+        ):
+            moments.append(
+                {
+                    "id": f"moment_{len(moments) + 1:03d}",
+                    "order": len(moments) + 1,
+                    "reference_seconds": step["reference_seconds"],
+                    "actions": [step],
+                }
+            )
+        else:
+            moments[-1]["actions"].append(step)
+    return moments
 
 
 def event_matches_step(event: dict[str, Any], step: dict[str, Any]) -> bool:

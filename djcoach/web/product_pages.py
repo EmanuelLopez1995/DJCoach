@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,12 @@ from djcoach.domain import Lesson
 from djcoach.lessons import (
     LessonRepository,
     ReferenceTakeRecorder,
+    TakeRepository,
+    AttemptRepository,
+    GuidedPracticeRecorder,
+    FEATURE_SCHEMA_VERSION,
     evaluate_preparation,
+    extract_take_features,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -39,9 +45,49 @@ PRODUCT_CSS = """
 .record-status { font-size:20px; font-weight:800; color:#f4f7fb; }
 .record-metrics { display:flex; flex-wrap:wrap; gap:10px; }.record-metric { min-width:145px; padding:12px; border:1px solid #263140; border-radius:10px; color:#aeb9c7; }.record-metric strong { display:block; margin-top:4px; color:#f4f7fb; font-size:18px; }
 .record-help { color:#93a1b3; line-height:1.5; }
+.review-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:18px 0; }.review-metric { padding:15px; border:1px solid #263140; border-radius:12px; background:#0b1118; color:#8fa0b5; }.review-metric strong { display:block; margin-top:5px; color:#f4f7fb; font-size:21px; }
+.review-section { display:grid; gap:10px; margin-top:24px; }.review-section h2 { margin:0; font-size:19px; }.timeline-row { display:grid; grid-template-columns:80px 150px 1fr; gap:12px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.timeline-time { color:#7ddfff; font-family:monospace; }.timeline-target { color:#c8d2df; font-weight:700; }.timeline-detail { color:#94a2b3; }
+.approval-panel { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-top:24px; padding:18px; border:1px solid #31506a; border-radius:14px; background:#0d1821; }.approval-state { color:#aeb9c7; }
+.guidance-card { display:grid; gap:10px; margin:20px 0; padding:24px; border:1px solid #ff4fd8; border-radius:18px; background:linear-gradient(145deg,#18101b,#0b1118); }.guidance-state { color:#ff83e4; font-size:11px; font-weight:800; letter-spacing:.14em; }.guidance-action { min-height:58px; color:#fff; font-size:26px; font-weight:800; line-height:1.25; }.guidance-time { color:#ffb4ed; font-family:monospace; }.next-action { padding:14px; border:1px solid #263140; border-radius:11px; color:#93a1b3; background:#0b1118; }.practice-progress { color:#94a2b3; }
+.result-score { color:#ff4fd8; font-size:48px; font-weight:900; }.result-row { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.result-ok { color:#58e5a3; }.result-missed { color:#ffb648; }
 @media(max-width:800px){.mode-grid,.lesson-tracks{grid-template-columns:1fr}.product-header h1{font-size:32px}}
-@media(max-width:800px){.prep-grid{grid-template-columns:1fr}}
+@media(max-width:800px){.prep-grid,.review-grid{grid-template-columns:1fr}.timeline-row{grid-template-columns:70px 1fr}.timeline-detail{grid-column:1/-1}}
 """
+
+
+CONTROL_LABELS = {
+    "low": "LOW",
+    "mid": "MID",
+    "high": "HIGH",
+    "gain": "GAIN",
+    "fx_adjust": "FX / FILTER",
+    "volume": "VOLUME",
+    "crossfader": "CROSSFADER",
+    "play": "PLAY",
+    "transport_cue": "CUE PLAY",
+    "loop_active": "LOOP",
+    "sync": "SYNC",
+    "fx_on": "FX ON",
+    "cue": "MONITOR CUE",
+    "loaded": "LOADED",
+    "track_end": "TRACK END",
+}
+
+
+def format_seconds(seconds: float | int | None) -> str:
+    if seconds is None:
+        return "---"
+    value = max(0, int(round(float(seconds))))
+    minutes, remaining_seconds = divmod(value, 60)
+    return f"{minutes:02d}:{remaining_seconds:02d}"
+
+
+def section_label(section: str | None) -> str:
+    return {
+        "deck_a": "Deck A",
+        "deck_b": "Deck B",
+        "mixer": "Mixer",
+    }.get(section or "", section or "General")
 
 
 def product_shell(title: str, subtitle: str) -> None:
@@ -55,7 +101,14 @@ def register_product_pages(runtime: Any) -> None:
     ensure_data_directories()
     catalog = TrackCatalog(DEMO_TRACKS_DIRECTORY)
     repository = LessonRepository()
-    reference_recorder = ReferenceTakeRecorder(runtime, repository)
+    take_repository = TakeRepository()
+    attempt_repository = AttemptRepository()
+    reference_recorder = ReferenceTakeRecorder(
+        runtime, repository, take_repository
+    )
+    guided_practice = GuidedPracticeRecorder(
+        runtime, repository, take_repository, attempt_repository
+    )
 
     @ui.page("/")
     def home_page() -> None:
@@ -269,6 +322,12 @@ def register_product_pages(runtime: Any) -> None:
                         stop_button = ui.button("DETENER Y GUARDAR").props(
                             "unelevated color=positive"
                         )
+                        review_button = ui.button(
+                            "REVISAR REFERENCIA",
+                            on_click=lambda: ui.navigate.to(
+                                f"/lessons/{lesson.id}/review"
+                            ),
+                        ).props("outline color=cyan")
                         ui.button(
                             "MONITOR MIDI (OPCIONAL)",
                             on_click=lambda: ui.navigate.to("/monitor"),
@@ -310,6 +369,7 @@ def register_product_pages(runtime: Any) -> None:
                     event_value.set_text(str(status["event_count"]))
                     start_button.set_enabled(state in {"idle", "recorded"})
                     stop_button.set_enabled(state == "recording")
+                    review_button.set_visibility(state == "recorded")
                     if state == "recording":
                         recording_status.set_text("● GRABANDO REFERENCIA")
                         recording_help.set_text(
@@ -340,9 +400,429 @@ def register_product_pages(runtime: Any) -> None:
                     "de Traktor no aumenta el contador de eventos."
                 ).classes("prep-note")
 
+    @ui.page("/lessons/{lesson_id}/review")
+    def lesson_review_page(lesson_id: str) -> None:
+        with ui.column().classes("product-page"):
+            try:
+                lesson = repository.get(lesson_id)
+                if not lesson.reference_take_id:
+                    raise FileNotFoundError
+                take = take_repository.get(lesson.reference_take_id)
+            except FileNotFoundError:
+                product_shell(
+                    "Referencia no encontrada",
+                    "Esta lección todavía no tiene una toma guardada.",
+                )
+                ui.button(
+                    "VOLVER",
+                    on_click=lambda: ui.navigate.to(
+                        f"/lessons/{lesson_id}/record"
+                    ),
+                )
+                return
+
+            if take.features.get("schema_version") != FEATURE_SCHEMA_VERSION:
+                take.features = extract_take_features(take)
+                take_repository.save(take)
+            features = take.features
+            transition = features.get("transition")
+
+            product_shell(
+                lesson.name,
+                "Revisá la técnica detectada antes de habilitarla para practicar.",
+            )
+            ui.button(
+                "← VOLVER A GRABACIÓN",
+                on_click=lambda: ui.navigate.to(
+                    f"/lessons/{lesson.id}/record"
+                ),
+            ).props("flat")
+            with ui.element("section").classes("lesson-summary"):
+                ui.label("ETAPA 3 DE 3 · REVISAR Y APROBAR").classes(
+                    "stage-chip"
+                )
+                ui.label(
+                    "DJ Coach agrupó los mensajes MIDI en acciones legibles. "
+                    "Los controles y estados aparecen juntos en el orden en que actuó el profesor."
+                ).classes("prep-intro")
+
+                with ui.element("div").classes("review-grid"):
+                    with ui.element("div").classes("review-metric"):
+                        ui.label("DURACIÓN TOTAL")
+                        ui.html(f"<strong>{format_seconds(take.duration_seconds)}</strong>")
+                    with ui.element("div").classes("review-metric"):
+                        ui.label("ACCIONES MIDI")
+                        ui.html(
+                            f'<strong>{features.get("meaningful_event_count", 0)}</strong>'
+                        )
+                    with ui.element("div").classes("review-metric"):
+                        ui.label("GESTOS AGRUPADOS")
+                        ui.html(f'<strong>{len(features.get("gestures", []))}</strong>')
+                    with ui.element("div").classes("review-metric"):
+                        ui.label("TRANSICIÓN")
+                        ui.html(
+                            f'<strong>{format_seconds(transition.get("duration_seconds") if transition else None)}</strong>'
+                        )
+
+                with ui.element("section").classes("review-section"):
+                    ui.html("<h2>Resumen de la transición</h2>")
+                    if transition:
+                        end_text = (
+                            format_seconds(transition.get("ended_at"))
+                            if transition.get("completed")
+                            else "sin cierre detectado"
+                        )
+                        ui.label(
+                            f'Comenzó en {format_seconds(transition.get("started_at"))}, '
+                            f'terminó en {end_text} y duró '
+                            f'{format_seconds(transition.get("duration_seconds"))}.'
+                        ).classes("prep-intro")
+                    else:
+                        ui.label(
+                            "No se detectó una transición completa con las reglas actuales."
+                        ).classes("prep-note")
+
+                with ui.element("section").classes("review-section"):
+                    ui.html("<h2>Secuencia técnica del profesor</h2>")
+                    timeline = features.get("timeline", [])
+                    if not timeline:
+                        ui.label("No se detectaron acciones para mostrar.")
+                    for event in timeline:
+                        event_type = event["type"]
+                        if event_type == "control_gesture":
+                            direction = {
+                                "increase": "subió",
+                                "decrease": "bajó",
+                                "movement": "se movió",
+                            }.get(event["direction"], "se movió")
+                            target = (
+                                f'{section_label(event["section"])} · '
+                                f'{CONTROL_LABELS.get(event["control"], event["control"].upper())}'
+                            )
+                            detail = (
+                                f'{direction} MIDI {event["start_value"]} → '
+                                f'{event["end_value"]}; rango '
+                                f'{event["minimum_value"]}-{event["maximum_value"]}'
+                            )
+                        elif event_type == "transport_change":
+                            target = (
+                                f'{section_label(event["section"])} · '
+                                f'{CONTROL_LABELS.get(event["control"], event["control"].upper())}'
+                            )
+                            detail = "ON" if event["active"] else "OFF"
+                        elif event_type == "transition_started":
+                            target = "TRANSICIÓN"
+                            detail = "Comienzo detectado"
+                        else:
+                            target = "TRANSICIÓN"
+                            detail = "Final detectado"
+                        with ui.element("div").classes("timeline-row"):
+                            ui.label(format_seconds(event["elapsed_seconds"])).classes(
+                                "timeline-time"
+                            )
+                            ui.label(target).classes("timeline-target")
+                            ui.label(detail).classes("timeline-detail")
+
+                with ui.element("div").classes("approval-panel"):
+                    approval_state = ui.label().classes("approval-state")
+                    approve_button = ui.button("APROBAR REFERENCIA").props(
+                        "unelevated color=positive"
+                    )
+
+                def approve_reference() -> None:
+                    current_lesson = repository.get(lesson.id)
+                    now = datetime.now().astimezone().isoformat(
+                        timespec="milliseconds"
+                    )
+                    current_lesson.status = "ready_for_practice"
+                    current_lesson.approved_at = now
+                    current_lesson.updated_at = now
+                    repository.save(current_lesson)
+                    approval_state.set_text(
+                        "✓ Referencia aprobada y lista para la futura práctica del alumno."
+                    )
+                    approve_button.set_enabled(False)
+                    ui.notify("Referencia aprobada", type="positive")
+
+                approve_button.on_click(approve_reference)
+                already_approved = lesson.status == "ready_for_practice"
+                approve_button.set_enabled(not already_approved)
+                approval_state.set_text(
+                    "✓ Referencia aprobada y lista para practicar."
+                    if already_approved
+                    else "Confirmá que este resumen representa la técnica enseñada."
+                )
+
+    @ui.page("/practice/{lesson_id}/prepare")
+    def practice_prepare_page(lesson_id: str) -> None:
+        with ui.column().classes("product-page"):
+            try:
+                lesson = repository.get(lesson_id)
+                if lesson.status != "ready_for_practice":
+                    raise FileNotFoundError
+            except FileNotFoundError:
+                product_shell(
+                    "Práctica no disponible",
+                    "La referencia todavía no está aprobada.",
+                )
+                ui.button("VOLVER", on_click=lambda: ui.navigate.to("/practice"))
+                return
+            product_shell(
+                lesson.name,
+                "Prepará en Traktor los mismos tracks utilizados por el profesor.",
+            )
+            ui.button(
+                "← LECCIONES", on_click=lambda: ui.navigate.to("/practice")
+            ).props("flat")
+            with ui.element("section").classes("lesson-summary"):
+                ui.label("PRÁCTICA GUIADA · PREPARAR").classes("stage-chip")
+                with ui.element("div").classes("prep-grid"):
+                    with ui.element("article").classes("track-check-card"):
+                        ui.label("DECK A").classes("deck-name")
+                        ui.label(lesson.deck_a_track.title).classes("track-name")
+                        confirm_a = ui.checkbox(
+                            "Confirmo el nombre visible en Deck A"
+                        )
+                    with ui.element("article").classes("track-check-card"):
+                        ui.label("DECK B").classes("deck-name")
+                        ui.label(lesson.deck_b_track.title).classes("track-name")
+                        confirm_b = ui.checkbox(
+                            "Confirmo el nombre visible en Deck B"
+                        )
+                ready_to_start = ui.checkbox(
+                    "Ambos decks están pausados y ubicados donde comenzará la práctica"
+                )
+                with ui.element("div").classes("readiness-list"):
+                    midi_line = ui.label().classes("readiness-line")
+                    deck_a_line = ui.label().classes("readiness-line")
+                    deck_b_line = ui.label().classes("readiness-line")
+                    names_line = ui.label().classes("readiness-line")
+                    start_line = ui.label().classes("readiness-line")
+                continue_button = ui.button(
+                    "COMENZAR PRÁCTICA GUIADA",
+                    on_click=lambda: ui.navigate.to(
+                        f"/practice/{lesson.id}/guided"
+                    ),
+                ).props("unelevated color=pink")
+
+                def refresh_student_preparation() -> None:
+                    status = evaluate_preparation(
+                        runtime.snapshot(), bool(confirm_a.value), bool(confirm_b.value)
+                    )
+                    mark = lambda value: "✓" if value else "○"
+                    midi_line.set_text(
+                        f"{mark(status.midi_connected)} Puerto MIDI conectado"
+                    )
+                    deck_a_line.set_text(
+                        f"{mark(status.deck_a_loaded)} Track cargado en Deck A"
+                    )
+                    deck_b_line.set_text(
+                        f"{mark(status.deck_b_loaded)} Track cargado en Deck B"
+                    )
+                    names_ok = (
+                        status.deck_a_name_confirmed
+                        and status.deck_b_name_confirmed
+                    )
+                    names_line.set_text(
+                        f"{mark(names_ok)} Nombres confirmados"
+                    )
+                    start_line.set_text(
+                        f"{mark(bool(ready_to_start.value))} Decks pausados y listos para iniciar"
+                    )
+                    continue_button.set_enabled(
+                        status.ready and bool(ready_to_start.value)
+                    )
+
+                confirm_a.on_value_change(
+                    lambda _event: refresh_student_preparation()
+                )
+                confirm_b.on_value_change(
+                    lambda _event: refresh_student_preparation()
+                )
+                ready_to_start.on_value_change(
+                    lambda _event: refresh_student_preparation()
+                )
+                refresh_student_preparation()
+                ui.timer(0.5, refresh_student_preparation)
+
+    @ui.page("/practice/{lesson_id}/guided")
+    def guided_practice_page(lesson_id: str) -> None:
+        with ui.column().classes("product-page"):
+            try:
+                lesson = repository.get(lesson_id)
+                if lesson.status != "ready_for_practice":
+                    raise FileNotFoundError
+            except FileNotFoundError:
+                product_shell("Práctica no disponible", "La lección no está aprobada.")
+                return
+            product_shell(
+                lesson.name,
+                "La app mostrará solamente la acción actual y la siguiente.",
+            )
+            ui.button(
+                "← VOLVER A PREPARAR",
+                on_click=lambda: ui.navigate.to(
+                    f"/practice/{lesson.id}/prepare"
+                ),
+            ).props("flat")
+            with ui.element("section").classes("lesson-summary"):
+                ui.label("PRÁCTICA GUIADA · INTENTO DEL ALUMNO").classes(
+                    "stage-chip"
+                )
+                ui.label(
+                    "Presioná Iniciar intento y luego comenzá el Deck A desde Traktor. "
+                    "Ese PLAY sincroniza el reloj de la guía."
+                ).classes("prep-intro")
+                with ui.element("div").classes("guidance-card"):
+                    guidance_state = ui.label("LISTO").classes("guidance-state")
+                    current_action = ui.label(
+                        "Iniciá el intento cuando tengas ambos tracks preparados"
+                    ).classes("guidance-action")
+                    current_time = ui.label().classes("guidance-time")
+                next_action = ui.label("Próxima: ---").classes("next-action")
+                practice_progress = ui.label().classes("practice-progress")
+                with ui.element("div").classes("prep-actions"):
+                    start_attempt_button = ui.button("INICIAR INTENTO").props(
+                        "unelevated color=pink"
+                    )
+                    stop_attempt_button = ui.button(
+                        "DETENER Y VER RESULTADO"
+                    ).props("unelevated color=positive")
+
+                def start_attempt() -> None:
+                    try:
+                        guided_practice.start(lesson.id)
+                    except (RuntimeError, ValueError) as error:
+                        ui.notify(str(error), type="warning")
+                        return
+                    ui.notify(
+                        "Intento iniciado. Ahora pulsá PLAY en Deck A.",
+                        type="positive",
+                    )
+                    refresh_guidance()
+
+                def stop_attempt() -> None:
+                    try:
+                        attempt = guided_practice.stop(lesson.id)
+                    except RuntimeError as error:
+                        ui.notify(str(error), type="warning")
+                        return
+                    ui.navigate.to(
+                        f"/practice/{lesson.id}/result/{attempt.id}"
+                    )
+
+                start_attempt_button.on_click(start_attempt)
+                stop_attempt_button.on_click(stop_attempt)
+
+                def refresh_guidance() -> None:
+                    status = guided_practice.status(lesson.id)
+                    state = status["state"]
+                    active = state != "idle"
+                    start_attempt_button.set_enabled(not active)
+                    stop_attempt_button.set_enabled(active)
+                    if state == "idle":
+                        guidance_state.set_text("LISTO PARA EMPEZAR")
+                        current_action.set_text(
+                            "Presioná Iniciar intento cuando estés preparado"
+                        )
+                        current_time.set_text("")
+                        next_action.set_text("Próxima: ---")
+                        practice_progress.set_text("")
+                        return
+                    if state == "waiting_for_play":
+                        guidance_state.set_text("ESPERANDO SINCRONIZACIÓN")
+                        current_action.set_text("Pulsá PLAY en Deck A")
+                        current_time.set_text("La guía comenzará con ese evento")
+                        next_action.set_text("Todavía no se revela la siguiente acción")
+                    elif state == "guidance_complete":
+                        guidance_state.set_text("SECUENCIA COMPLETADA")
+                        current_action.set_text("Detené y revisá tu resultado")
+                        current_time.set_text("✓ Todas las consignas fueron recorridas")
+                        next_action.set_text("Próxima: finalizar intento")
+                    else:
+                        current = status["current"]
+                        seconds_until = float(status["seconds_until_current"])
+                        guidance_state.set_text(
+                            "AHORA" if seconds_until <= 0 else "PRÓXIMA ACCIÓN"
+                        )
+                        current_action.set_text(current["instruction"])
+                        current_time.set_text(
+                            "Ahora"
+                            if seconds_until <= 0
+                            else f"En {seconds_until:.0f} segundos"
+                        )
+                        following = status.get("next")
+                        next_action.set_text(
+                            f'Luego: {following["instruction"]}'
+                            if following
+                            else "Luego: finalizar la técnica"
+                        )
+                    practice_progress.set_text(
+                        f'{status["completed_count"]} completadas · '
+                        f'{status["missed_count"]} omitidas · '
+                        f'{status["total_steps"]} consignas'
+                    )
+
+                refresh_guidance()
+                ui.timer(0.25, refresh_guidance)
+
+    @ui.page("/practice/{lesson_id}/result/{attempt_id}")
+    def practice_result_page(lesson_id: str, attempt_id: str) -> None:
+        with ui.column().classes("product-page"):
+            try:
+                lesson = repository.get(lesson_id)
+                attempt = attempt_repository.get(attempt_id)
+                if attempt.lesson_id != lesson.id or attempt.role.value != "student":
+                    raise FileNotFoundError
+            except FileNotFoundError:
+                product_shell("Resultado no encontrado", "El intento local no existe.")
+                return
+            features = attempt.features
+            steps_by_id = {
+                step["id"]: step for step in features.get("steps", [])
+            }
+            product_shell(
+                "Resultado del intento",
+                f"Práctica guiada de {lesson.name}",
+            )
+            ui.label(f'{features.get("score_percentage", 0)}%').classes(
+                "result-score"
+            )
+            ui.label(
+                f'{features.get("completed_count", 0)} de '
+                f'{features.get("total_steps", 0)} consignas completadas'
+            ).classes("prep-intro")
+            with ui.element("section").classes("review-section"):
+                for outcome in features.get("outcomes", []):
+                    step = steps_by_id[outcome["step_id"]]
+                    completed = outcome["status"] == "completed"
+                    timing = {
+                        "early": "antes",
+                        "on_time": "a tiempo",
+                        "late": "tarde",
+                    }.get(outcome.get("timing"), "omitida")
+                    with ui.element("div").classes("result-row"):
+                        ui.label("✓" if completed else "○").classes(
+                            "result-ok" if completed else "result-missed"
+                        )
+                        ui.label(step["instruction"])
+                        ui.label(timing).classes(
+                            "result-ok" if completed else "result-missed"
+                        )
+            ui.button(
+                "REPETIR PRÁCTICA",
+                on_click=lambda: ui.navigate.to(
+                    f"/practice/{lesson.id}/prepare"
+                ),
+            ).props("unelevated color=pink")
+
     @ui.page("/practice")
     def practice_page() -> None:
-        lessons = repository.list()
+        lessons = [
+            lesson
+            for lesson in repository.list()
+            if lesson.status == "ready_for_practice"
+        ]
         with ui.column().classes("product-page"):
             product_shell(
                 "Biblioteca de lecciones",
@@ -350,7 +830,7 @@ def register_product_pages(runtime: Any) -> None:
             )
             ui.button("← INICIO", on_click=lambda: ui.navigate.to("/")).props("flat")
             if not lessons:
-                ui.html('<div class="empty-library">Todavía no hay lecciones. Creá la primera desde el modo Profesor.</div>')
+                ui.html('<div class="empty-library">Todavía no hay lecciones aprobadas para practicar.</div>')
                 return
             with ui.element("div").classes("lesson-list"):
                 for lesson in lessons:
@@ -360,9 +840,10 @@ def register_product_pages(runtime: Any) -> None:
                             ui.label(
                                 f"{lesson.deck_a_track.title} → {lesson.deck_b_track.title}"
                             ).classes("text-caption text-grey")
+                            ui.label("LISTA PARA PRACTICAR").classes("product-kicker")
                         ui.button(
-                            "ABRIR",
+                            "PRACTICAR",
                             on_click=lambda lesson_id=lesson.id: ui.navigate.to(
-                                f"/lessons/{lesson_id}"
+                                f"/practice/{lesson_id}/prepare"
                             ),
                         ).props("outline")

@@ -12,6 +12,7 @@ from djcoach.domain import Take, TakeRole
 
 from .repository import LessonRepository
 from .take_repository import TakeRepository
+from .features import extract_take_features
 
 
 def timestamp_now() -> str:
@@ -86,13 +87,7 @@ class ReferenceTakeRecorder:
             )
             active.take.events = result["events"]
             active.take.final_state = result["final_state"]
-            active.take.features = {
-                "event_count": len(active.take.events),
-                "midi_change_count": sum(
-                    event.get("type") == "midi_change"
-                    for event in active.take.events
-                ),
-            }
+            active.take.features = extract_take_features(active.take)
 
             self.take_repository.save(active.take)
             lesson = self.lesson_repository.get(lesson_id)

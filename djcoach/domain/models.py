@@ -68,6 +68,7 @@ class Lesson:
     created_at: str = field(default_factory=timestamp_now)
     updated_at: str = field(default_factory=timestamp_now)
     reference_take_id: str | None = None
+    approved_at: str | None = None
     schema_version: int = 1
 
     def to_dict(self) -> dict[str, Any]:

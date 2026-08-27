@@ -205,6 +205,20 @@ class DJCoachRuntime:
                 "final_state": self.snapshot(),
             }
 
+    def peek_take_capture(self, checkpoint: dict[str, Any]) -> dict[str, Any]:
+        """Consulta una captura activa sin cerrarla ni alterar sus eventos."""
+        with self.lock:
+            result = self.finish_take_capture(checkpoint)
+            result["elapsed_seconds"] = round(
+                max(
+                    0.0,
+                    self.recorder.elapsed()
+                    - float(checkpoint["elapsed_seconds"]),
+                ),
+                3,
+            )
+            return result
+
     def take_event_count(self, checkpoint: dict[str, Any]) -> int:
         with self.lock:
             cursor = int(checkpoint["event_cursor"])

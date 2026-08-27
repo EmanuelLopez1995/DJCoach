@@ -75,7 +75,11 @@ Rutas iniciales:
 | `/lessons/new` | Selección de tracks y creación de un borrador |
 | `/lessons/{id}` | Preparación y verificación de ambos decks |
 | `/lessons/{id}/record` | Grabación de la referencia MIDI del profesor |
+| `/lessons/{id}/review` | Técnica detectada y aprobación de la referencia |
 | `/practice` | Biblioteca local de lecciones |
+| `/practice/{id}/prepare` | Preparación de tracks del alumno |
+| `/practice/{id}/guided` | Consignas progresivas durante el intento |
+| `/practice/{id}/result/{attempt}` | Resultado del intento guiado |
 | `/monitor` | Dashboard técnico MIDI existente |
 
 Para arrancarla sin abrir el navegador:

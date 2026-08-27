@@ -25,8 +25,12 @@ Traktor.
 - [ ] **Experimental:** grabar un reference take desde el runtime; implementado,
   pendiente de una prueba física completa con Traktor y la Z1.
 - [ ] Guardar estado inicial y eventos con tiempo y beat musical.
-- [ ] Extraer landmarks: entrada, bass swap, FX y salida.
-- [ ] Grabar un student attempt vinculado a la lección.
+- [x] Extraer y ordenar en una sola cronología los gestos de mixer,
+  transporte y transición de una toma.
+- [ ] Interpretar landmarks de alto nivel: entrada, bass swap, FX y salida.
+- [x] Grabar un student attempt guiado y vinculado a la lección.
+- [x] Mostrar una consigna actual y una próxima sin revelar la cronología completa.
+- [x] Sincronizar el inicio de la guía con el primer `PLAY` de Deck A.
 - [ ] Comparar reference take contra student attempt con tolerancias.
 - [ ] Mostrar feedback concreto por técnica.
 - [ ] Permitir repetir y conservar el historial de intentos.
@@ -201,13 +205,14 @@ no se afirma si un deck va adelantado o atrasado.
 1. [x] Modelos, catálogo, borrador de lección y rutas del producto.
 2. [x] Preparación inicial con verificaciones y avance guiado.
 3. [ ] Grabación del reference take implementada; pendiente de validación física.
-4. [ ] Extracción de landmarks técnicos desde la referencia.
-5. [ ] Grabación de un intento del alumno.
-6. [ ] Comparación tolerante y primer informe.
-7. [ ] Historial de reintentos.
-8. [ ] Ghost visual.
-9. [ ] Identificación automática del track cargado en Traktor.
-10. [ ] Análisis musical avanzado de archivos y audio.
+4. [x] Extracción inicial de gestos y revisión del profesor.
+5. [ ] Interpretación de landmarks técnicos de alto nivel.
+6. [x] Grabación guiada de un intento del alumno.
+7. [ ] Calibrar con sesiones reales la comparación tolerante y el informe inicial.
+8. [ ] Historial de reintentos.
+9. [ ] Ghost visual.
+10. [ ] Identificación automática del track cargado en Traktor.
+11. [ ] Análisis musical avanzado de archivos y audio.
 
 ## Fuera de alcance por ahora
 

@@ -6,11 +6,14 @@ from collections import defaultdict
 from typing import Any
 
 from djcoach.domain import Take
+from djcoach.midi import format_loop_size
 
 
-FEATURE_SCHEMA_VERSION = 2
+FEATURE_SCHEMA_VERSION = 3
 GESTURE_GAP_SECONDS = 2.0
 TIMING_CONTROLS = {"phase", "beat_phase", "track_progress"}
+SELECTOR_CONTROLS = {"loop_size"}
+LOOP_ACTIVATION_SIZE_WINDOW_SECONDS = 0.25
 TRANSPORT_CONTROLS = {
     "loaded",
     "play",
@@ -59,7 +62,11 @@ def _extract_gestures(midi_events: list[dict[str, Any]]) -> list[dict[str, Any]]
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for event in midi_events:
         control = str(event.get("control", ""))
-        if control in TIMING_CONTROLS or control in TRANSPORT_CONTROLS:
+        if (
+            control in TIMING_CONTROLS
+            or control in TRANSPORT_CONTROLS
+            or control in SELECTOR_CONTROLS
+        ):
             continue
         if event.get("value") is None:
             continue
@@ -143,8 +150,41 @@ def extract_take_features(take: Take) -> dict[str, Any]:
     ]
     controls_used.sort(key=lambda item: item["first_at"])
 
-    transport_events = [
-        {
+    attached_loop_size_events: set[int] = set()
+
+    def loop_size_at_activation(section: str, event_index: int) -> int | None:
+        elapsed = _elapsed(midi_events[event_index])
+        initial_deck = take.initial_state.get(section, {})
+        initial_loop_size = initial_deck.get("loop_size", {})
+        current = initial_loop_size.get("midi")
+        for candidate in midi_events[:event_index]:
+            if (
+                candidate.get("section") == section
+                and candidate.get("control") == "loop_size"
+            ):
+                current = candidate.get("value")
+
+        # Traktor puede informar LOOP ON antes de actualizar el selector al
+        # tamaño real de un loop almacenado. Una actualización inmediata forma
+        # parte de la activación, no es una segunda acción del profesor.
+        for candidate in midi_events[event_index + 1 :]:
+            delay = _elapsed(candidate) - elapsed
+            if delay > LOOP_ACTIVATION_SIZE_WINDOW_SECONDS:
+                break
+            if (
+                candidate.get("section") == section
+                and candidate.get("control") == "loop_size"
+            ):
+                current = candidate.get("value")
+                attached_loop_size_events.add(id(candidate))
+                break
+        return int(current) if current is not None else None
+
+    transport_events = []
+    for event_index, event in enumerate(midi_events):
+        if event.get("control") not in TRANSPORT_CONTROLS:
+            continue
+        transport_event = {
             "type": "transport_change",
             "section": event.get("section"),
             "control": event.get("control"),
@@ -152,8 +192,26 @@ def extract_take_features(take: Take) -> dict[str, Any]:
             "value": int(event.get("value", 0)),
             "active": int(event.get("value", 0)) >= 64,
         }
+        if event.get("control") == "loop_active" and transport_event["active"]:
+            loop_midi = loop_size_at_activation(
+                str(event.get("section", "")), event_index
+            )
+            transport_event["loop_size_midi"] = loop_midi
+            transport_event["loop_size_label"] = format_loop_size(loop_midi)
+        transport_events.append(transport_event)
+
+    selector_events = [
+        {
+            "type": "selector_change",
+            "section": event.get("section"),
+            "control": "loop_size",
+            "elapsed_seconds": _elapsed(event),
+            "value": int(event.get("value", 0)),
+            "label": format_loop_size(int(event.get("value", 0))),
+        }
         for event in midi_events
-        if event.get("control") in TRANSPORT_CONTROLS
+        if event.get("control") == "loop_size"
+        and id(event) not in attached_loop_size_events
     ]
     gestures = _extract_gestures(midi_events)
     timeline: list[dict[str, Any]] = [
@@ -161,6 +219,7 @@ def extract_take_features(take: Take) -> dict[str, Any]:
         for gesture in gestures
     ]
     timeline.extend(transport_events)
+    timeline.extend(selector_events)
     if transition_started is not None:
         timeline.append(
             {
@@ -189,5 +248,6 @@ def extract_take_features(take: Take) -> dict[str, Any]:
         "controls_used": controls_used,
         "gestures": gestures,
         "transport_events": transport_events,
+        "selector_events": selector_events,
         "timeline": timeline,
     }

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from djcoach.midi import format_loop_size
 
-GUIDANCE_SCHEMA_VERSION = 2
+
+GUIDANCE_SCHEMA_VERSION = 3
 GESTURE_MINIMUM_CHANGE = 8
 VALUE_TOLERANCE = 12
 SIMULTANEOUS_WINDOW_SECONDS = 2.5
@@ -21,6 +23,7 @@ CONTROL_NAMES = {
     "play": "PLAY",
     "transport_cue": "CUE",
     "loop_active": "LOOP",
+    "loop_size": "TAMAÑO DE LOOP",
     "sync": "SYNC",
     "fx_on": "FX ON",
     "cue": "MONITOR CUE",
@@ -102,14 +105,36 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
             control_name = CONTROL_NAMES.get(
                 str(event["control"]), str(event["control"]).upper()
             )
+            instruction = (
+                f'{"Activá" if active else "Desactivá"} {control_name} '
+                f'de {_deck_name(str(event["section"]))}'
+            )
+            if (
+                event.get("control") == "loop_active"
+                and active
+                and event.get("loop_size_midi") is not None
+            ):
+                instruction = (
+                    f'Activá LOOP de {format_loop_size(int(event["loop_size_midi"]))} '
+                    f'en {_deck_name(str(event["section"]))}'
+                )
             step = {
                 "kind": "transport",
                 "section": event["section"],
                 "control": event["control"],
                 "target_active": active,
+                "instruction": instruction,
+            }
+        elif event_type == "selector_change":
+            target = int(event["value"])
+            step = {
+                "kind": "selector",
+                "section": event["section"],
+                "control": "loop_size",
+                "target_value": target,
                 "instruction": (
-                    f'{"Activá" if active else "Desactivá"} {control_name} '
-                    f'de {_deck_name(str(event["section"]))}'
+                    f"Seleccioná un LOOP de {format_loop_size(target)} "
+                    f"en {_deck_name(str(event['section']))}"
                 ),
             }
         else:
@@ -162,6 +187,8 @@ def event_matches_step(event: dict[str, Any], step: dict[str, Any]) -> bool:
     if step["kind"] == "transport":
         return (value >= 64) == bool(step["target_active"])
     target = int(step["target_value"])
+    if step["kind"] == "selector":
+        return abs(value - target) <= 5
     if target <= 12:
         return value <= 20
     if target >= 115:

@@ -72,6 +72,18 @@ def state_badge(deck: dict[str, Any], key: str, label: str) -> str:
     </div>"""
 
 
+def loop_size_badge(deck: dict[str, Any]) -> str:
+    control = deck["loop_size"]
+    if not control["received"]:
+        state_class, state_text = "unknown", "---"
+    else:
+        state_class, state_text = "on", str(control["label"])
+    return f"""
+    <div class="state-item {state_class}">
+      <span>LOOP SIZE</span><strong>{html.escape(state_text)}</strong>
+    </div>"""
+
+
 def timing_widget(deck: dict[str, Any], key: str, label: str) -> str:
     control = deck[key]
     if not control["received"]:
@@ -141,6 +153,7 @@ def deck_card(
 ) -> str:
     mixer = "".join(continuous_row(deck, key, label) for key, label in MIXER_CONTROLS)
     states = "".join(state_badge(deck, key, label) for key, label in STATE_CONTROLS)
+    states += loop_size_badge(deck)
     timing = "".join(
         (
             timing_widget(deck, "phase", "PHASE"),

@@ -18,6 +18,8 @@ from typing import Any
 
 import mido
 
+from djcoach.midi import format_loop_size, loop_size_beats
+
 
 PORT_NAME_FRAGMENT = "djcoach"
 
@@ -31,6 +33,7 @@ DECK_A_CONTINUOUS_CONTROLS = {
     28: ("phase", "PHASE"),
     30: ("beat_phase", "BEAT PHASE"),
     32: ("track_progress", "TRACK PROGRESS"),
+    36: ("loop_size", "LOOP SIZE"),
 }
 
 DECK_A_BOOLEAN_CONTROLS = {
@@ -54,6 +57,7 @@ DECK_B_CONTINUOUS_CONTROLS = {
     29: ("phase", "PHASE"),
     31: ("beat_phase", "BEAT PHASE"),
     33: ("track_progress", "TRACK PROGRESS"),
+    37: ("loop_size", "LOOP SIZE"),
 }
 
 DECK_B_BOOLEAN_CONTROLS = {
@@ -182,6 +186,19 @@ def make_continuous_value(
         "received": True,
         "updated_at": iso_timestamp(),
     }
+
+
+def make_loop_size_value(midi_value: int | None = None) -> dict[str, Any]:
+    """Crea el estado MIDI y musical del selector Loop Size de Traktor."""
+    value = make_continuous_value(midi_value)
+    beats = loop_size_beats(midi_value)
+    value.update(
+        {
+            "beats": float(beats) if beats is not None else None,
+            "label": format_loop_size(midi_value),
+        }
+    )
+    return value
 
 
 @dataclass(frozen=True)
@@ -525,6 +542,7 @@ def create_deck_a_state() -> dict[str, Any]:
         key: make_continuous_value()
         for key, _label in DECK_A_CONTINUOUS_CONTROLS.values()
     }
+    state["loop_size"] = make_loop_size_value()
     state.update(
         {
             "fx_on": False,
@@ -570,6 +588,7 @@ def create_deck_b_state() -> dict[str, Any]:
         key: make_continuous_value()
         for key, _label in DECK_B_CONTINUOUS_CONTROLS.values()
     }
+    state["loop_size"] = make_loop_size_value()
     state.update(
         {
             "fx_on": False,
@@ -618,7 +637,11 @@ def update_deck_a(deck_a: dict[str, Any], message: mido.Message) -> bool:
         key, _label = DECK_A_CONTINUOUS_CONTROLS[message.control]
         if deck_a[key]["midi"] == message.value:
             return False
-        deck_a[key] = make_continuous_value(message.value)
+        deck_a[key] = (
+            make_loop_size_value(message.value)
+            if key == "loop_size"
+            else make_continuous_value(message.value)
+        )
         return True
 
     if message.control in DECK_A_BOOLEAN_CONTROLS:
@@ -643,7 +666,11 @@ def update_deck_b(deck_b: dict[str, Any], message: mido.Message) -> bool:
         key, _label = DECK_B_CONTINUOUS_CONTROLS[message.control]
         if deck_b[key]["midi"] == message.value:
             return False
-        deck_b[key] = make_continuous_value(message.value)
+        deck_b[key] = (
+            make_loop_size_value(message.value)
+            if key == "loop_size"
+            else make_continuous_value(message.value)
+        )
         return True
 
     if message.control in DECK_B_BOOLEAN_CONTROLS:
@@ -689,6 +716,13 @@ def format_boolean_control(label: str, deck: dict[str, Any], key: str) -> str:
         return f"{label:<10} {'---':>3}   MIDI ---"
     status = "ON" if deck[key] else "OFF"
     return f"{label:<10} {status:>3}   MIDI {deck[f'{key}_midi']:>3}"
+
+
+def format_loop_size_control(deck: dict[str, Any]) -> str:
+    control = deck["loop_size"]
+    if not control["received"]:
+        return f"{'LOOP SIZE':<10} {'---':>3}   MIDI ---"
+    return f"{'LOOP SIZE':<10} {control['label']:<22} MIDI {control['midi']:>3}"
 
 
 def format_crossfader(crossfader: dict[str, Any]) -> list[str]:
@@ -1474,6 +1508,8 @@ def render_dashboard(
             f"{format_boolean_control('CUE PLAY', deck_b, 'transport_cue')}",
             f"{format_boolean_control('LOOP', deck_a, 'loop_active'):<32}"
             f"{format_boolean_control('LOOP', deck_b, 'loop_active')}",
+            f"{format_loop_size_control(deck_a):<44}"
+            f"{format_loop_size_control(deck_b)}",
             f"{format_boolean_control('SYNC', deck_a, 'sync'):<32}"
             f"{format_boolean_control('SYNC', deck_b, 'sync')}",
             f"{format_boolean_control('FX ON', deck_a, 'fx_on'):<32}"
@@ -1557,19 +1593,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--raw",
         action="store_true",
-        help="imprime únicamente MIDI crudo usando el lector bloqueante original",
+        help="imprime MIDI crudo, ocultando los pulsos continuos de MIDI Clock",
+    )
+    parser.add_argument(
+        "--raw-all",
+        action="store_true",
+        help="con --raw, incluye también los pulsos continuos de MIDI Clock",
     )
     return parser.parse_args()
 
 
-def run_raw_monitor(port_name: str) -> int:
+def should_print_raw_message(message: mido.Message, include_clock: bool = False) -> bool:
+    """Evita que los 24 pulsos por beat del reloj oculten mensajes útiles."""
+    return include_clock or message.type != "clock"
+
+
+def run_raw_monitor(port_name: str, include_clock: bool = False) -> int:
     """Modo mínimo de diagnóstico con la lectura que se validó inicialmente."""
     print(f"\nConectado a: {port_name}")
-    print("Modo MIDI crudo (Ctrl+C para salir)...\n")
+    clock_note = "incluido" if include_clock else "oculto"
+    print(f"Modo MIDI crudo (MIDI Clock {clock_note}; Ctrl+C para salir)...\n")
     try:
         with mido.open_input(port_name) as port:
             for message in port:
-                print(message, flush=True)
+                if should_print_raw_message(message, include_clock):
+                    print(message, flush=True)
     except KeyboardInterrupt:
         print("\nMonitor MIDI detenido.")
     except Exception as exc:
@@ -1622,7 +1670,7 @@ def main() -> int:
         return 1
 
     if args.raw:
-        return run_raw_monitor(port_name)
+        return run_raw_monitor(port_name, include_clock=args.raw_all)
 
     deck_a = create_deck_a_state()
     deck_b = create_deck_b_state()

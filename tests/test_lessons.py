@@ -34,6 +34,7 @@ def complete_initial_snapshot() -> dict:
         "fx_adjust": continuous(63),
         "volume": continuous(127),
         "track_progress": continuous(0),
+        "loop_size": continuous(101),
         "loaded": True,
         "loaded_received": True,
     }
@@ -290,6 +291,110 @@ class LessonDomainTests(unittest.TestCase):
         self.assertEqual(len(moments), 1)
         self.assertEqual(len(moments[0]["actions"]), 2)
 
+    def test_loop_size_is_attached_to_activation_and_guidance(self) -> None:
+        take = Take(
+            lesson_id="lesson_loop",
+            role=TakeRole.TEACHER,
+            initial_state=complete_initial_snapshot(),
+            events=[
+                {
+                    "type": "midi_change",
+                    "section": "deck_a",
+                    "control": "play",
+                    "value": 127,
+                    "elapsed_seconds": 1.0,
+                },
+                {
+                    "type": "midi_change",
+                    "section": "deck_b",
+                    "control": "loop_size",
+                    "value": 114,
+                    "elapsed_seconds": 4.0,
+                },
+                {
+                    "type": "midi_change",
+                    "section": "deck_b",
+                    "control": "loop_active",
+                    "value": 127,
+                    "elapsed_seconds": 5.0,
+                },
+            ],
+        )
+
+        features = extract_take_features(take)
+        loop_on = next(
+            event
+            for event in features["transport_events"]
+            if event["control"] == "loop_active"
+        )
+        self.assertEqual(loop_on["loop_size_midi"], 114)
+        self.assertEqual(loop_on["loop_size_label"], "16 beats (4 compases)")
+
+        steps = build_guidance_steps(features)
+        self.assertEqual(steps[0]["kind"], "selector")
+        self.assertEqual(
+            steps[0]["instruction"],
+            "Seleccioná un LOOP de 16 beats (4 compases) en Deck B",
+        )
+        self.assertEqual(
+            steps[1]["instruction"],
+            "Activá LOOP de 16 beats (4 compases) en Deck B",
+        )
+        self.assertTrue(
+            event_matches_step(
+                {
+                    "type": "midi_change",
+                    "section": "deck_b",
+                    "control": "loop_size",
+                    "value": 114,
+                },
+                steps[0],
+            )
+        )
+
+    def test_loop_size_sent_immediately_after_loop_on_replaces_previous_size(self) -> None:
+        take = Take(
+            lesson_id="lesson_stored_loop",
+            role=TakeRole.TEACHER,
+            initial_state=complete_initial_snapshot(),
+            events=[
+                {
+                    "type": "midi_change",
+                    "section": "deck_a",
+                    "control": "play",
+                    "value": 127,
+                    "elapsed_seconds": 1.0,
+                },
+                {
+                    "type": "midi_change",
+                    "section": "deck_b",
+                    "control": "loop_active",
+                    "value": 127,
+                    "elapsed_seconds": 5.0,
+                },
+                {
+                    "type": "midi_change",
+                    "section": "deck_b",
+                    "control": "loop_size",
+                    "value": 50,
+                    "elapsed_seconds": 5.02,
+                },
+            ],
+        )
+
+        features = extract_take_features(take)
+        loop_on = next(
+            event
+            for event in features["transport_events"]
+            if event["control"] == "loop_active"
+        )
+        self.assertEqual(loop_on["loop_size_label"], "1/2 beat")
+        self.assertEqual(features["selector_events"], [])
+        self.assertEqual(
+            build_guidance_steps(features)[0]["instruction"],
+            "Activá LOOP de 1/2 beat en Deck B",
+        )
+
     def test_initial_state_comparison_uses_tolerance_and_directions(self) -> None:
         reference = complete_initial_snapshot()
         current = complete_initial_snapshot()
@@ -313,6 +418,19 @@ class LessonDomainTests(unittest.TestCase):
             "Desactivá FX ON Deck A",
         )
         self.assertFalse(comparison.ready)
+
+    def test_old_reference_without_loop_size_remains_compatible(self) -> None:
+        reference = complete_initial_snapshot()
+        current = complete_initial_snapshot()
+        del reference["deck_a"]["loop_size"]
+        del reference["deck_b"]["loop_size"]
+
+        comparison = compare_initial_state(reference, current)
+
+        self.assertTrue(comparison.ready)
+        self.assertNotIn(
+            "loop_size", {item.control for item in comparison.items}
+        )
 
     def test_guided_practice_accepts_simultaneous_actions_in_any_order(self) -> None:
         class FakeRuntime:

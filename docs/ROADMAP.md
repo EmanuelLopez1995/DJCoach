@@ -85,6 +85,9 @@ Play, Loaded, volumen y crossfader.
 - [x] Play/Pause de ambos decks.
 - [x] Cue de transporte de ambos decks.
 - [x] Loop activo de ambos decks.
+- [x] Tamaño seleccionado del loop en ambos decks (CC36/CC37).
+- [x] Mostrar tamaños de loop en beats y su equivalencia en compases 4/4.
+- [x] Asociar el tamaño vigente al momento de activar el loop en una lección.
 - [x] Sync de ambos decks.
 - [x] Track End Warning de ambos decks.
 - [x] Posición porcentual mediante Seek Position.
@@ -94,7 +97,7 @@ Play, Loaded, volumen y crossfader.
 - [ ] Duración total de cada canción.
 - [ ] Tiempo transcurrido y restante en minutos/segundos.
 - [ ] Detectar saltos de posición, BeatJump y Hotcues de forma explícita.
-- [ ] Conocer tamaño y posición exacta de un loop.
+- [ ] Conocer la posición exacta de entrada y salida de un loop.
 
 ## 4. Tempo, beats y compases
 

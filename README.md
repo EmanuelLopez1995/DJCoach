@@ -43,6 +43,13 @@ Para aislar problemas de entrada usando el lector bloqueante original:
 python D:\DJCoach\dj_coach.py --raw
 ```
 
+Este modo oculta los pulsos continuos de MIDI Clock para que se vean claramente
+los cambios de CC. Para incluir también el reloj completo:
+
+```powershell
+python D:\DJCoach\dj_coach.py --raw --raw-all
+```
+
 Antes de abrir DJ Coach, cerrá otras instancias de `python dj_coach.py`; una
 instancia anterior puede quedarse conectada al mismo puerto MIDI.
 
@@ -114,6 +121,12 @@ Todos están en el canal MIDI 1 de Traktor (`channel=0` en Mido).
 | 30–31 | Deck A/B: BEAT PHASE |
 | 32–33 | Deck A/B: SEEK POSITION / progreso de canción |
 | 34–35 | Deck A/B: TRACK END WARNING |
+| 36–37 | Deck A/B: LOOP SIZE SELECTOR |
+
+El tamaño del loop se expresa como lo hace Traktor: en **beats**. DJ Coach
+también muestra su equivalencia en compases 4/4; por ejemplo, `8 beats` son
+`2 compases`. Los valores calibrados principales son MIDI `88=4`, `101=8`,
+`114=16` y `127=32 beats`.
 
 ## Lógica local actual
 

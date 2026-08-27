@@ -17,6 +17,13 @@ def cc(control: int, value: int, channel: int = 0) -> mido.Message:
 
 
 class MixerStateTests(unittest.TestCase):
+    def test_raw_monitor_hides_clock_but_keeps_control_changes(self) -> None:
+        self.assertFalse(dj.should_print_raw_message(mido.Message("clock")))
+        self.assertTrue(dj.should_print_raw_message(cc(36, 63)))
+        self.assertTrue(
+            dj.should_print_raw_message(mido.Message("clock"), include_clock=True)
+        )
+
     def test_blocking_reader_forwards_messages(self) -> None:
         incoming = queue.Queue()
         messages = [cc(1, 63), cc(16, 64)]
@@ -186,6 +193,8 @@ class MixerStateTests(unittest.TestCase):
         self.assertTrue(dj.update_deck_b(deck_b, cc(33, 100)))
         self.assertTrue(dj.update_deck_a(deck_a, cc(34, 127)))
         self.assertTrue(dj.update_deck_b(deck_b, cc(35, 0)))
+        self.assertTrue(dj.update_deck_a(deck_a, cc(36, 101)))
+        self.assertTrue(dj.update_deck_b(deck_b, cc(37, 127)))
         self.assertTrue(dj.update_crossfader(crossfader, cc(16, 64)))
         self.assertFalse(dj.update_deck_b(deck_b, cc(9, 10, channel=1)))
 
@@ -206,6 +215,8 @@ class MixerStateTests(unittest.TestCase):
         self.assertEqual(deck_b["track_progress"]["midi"], 100)
         self.assertTrue(deck_a["track_end_warning"])
         self.assertFalse(deck_b["track_end_warning"])
+        self.assertEqual(deck_a["loop_size"]["label"], "8 beats (2 compases)")
+        self.assertEqual(deck_b["loop_size"]["beats"], 32.0)
         self.assertEqual(crossfader["percentage"], 50)
 
 

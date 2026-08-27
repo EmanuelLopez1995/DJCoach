@@ -71,6 +71,7 @@ CONTROL_LABELS = {
     "play": "PLAY",
     "transport_cue": "CUE PLAY",
     "loop_active": "LOOP",
+    "loop_size": "TAMAÑO DE LOOP",
     "sync": "SYNC",
     "fx_on": "FX ON",
     "cue": "MONITOR CUE",
@@ -228,6 +229,15 @@ def render_mixer_calibration(comparison: Any) -> str:
                 ("sync", "SYNC"),
             )
         )
+        loop_size = items.get((section, "loop_size"))
+        if loop_size is not None:
+            mismatch = "" if loop_size.matched else " mismatch"
+            buttons += (
+                f'<div class="hw-button{mismatch}"><span class="led"></span>'
+                f'LOOP SIZE<span class="target-state">actual '
+                f'{escape(loop_size.current_display)}<br>objetivo '
+                f'{escape(loop_size.target_display)}</span></div>'
+            )
         return (
             f'<section class="hardware-deck {css_class}">'
             f'<div class="hardware-title">{escape(title)}</div>'
@@ -694,6 +704,14 @@ def register_product_pages(runtime: Any) -> None:
                                 f'{CONTROL_LABELS.get(event["control"], event["control"].upper())}'
                             )
                             detail = "ON" if event["active"] else "OFF"
+                            if event.get("loop_size_label"):
+                                detail += f' · {event["loop_size_label"]}'
+                        elif event_type == "selector_change":
+                            target = (
+                                f'{section_label(event["section"])} · '
+                                "TAMAÑO DE LOOP"
+                            )
+                            detail = str(event["label"])
                         elif event_type == "transition_started":
                             target = "TRANSICIÓN"
                             detail = "Comienzo detectado"

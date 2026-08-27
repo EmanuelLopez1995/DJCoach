@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from djcoach.midi import format_loop_size
+
 
 MIDI_TOLERANCE = 4
 TRACK_POSITION_TOLERANCE = 2
@@ -18,6 +20,7 @@ CONTINUOUS_CONTROLS = (
     ("fx_adjust", "FX / FILTER"),
     ("volume", "VOLUME"),
     ("track_progress", "POSICIÓN DEL TRACK"),
+    ("loop_size", "TAMAÑO DE LOOP"),
 )
 BOOLEAN_CONTROLS = (
     ("fx_on", "FX ON"),
@@ -70,6 +73,8 @@ def _display(value: int | float | bool | None, kind: str) -> str:
         return "ON" if bool(value) else "OFF"
     if kind == "bpm":
         return f"{float(value):.1f} BPM"
+    if kind == "loop_size":
+        return format_loop_size(int(value))
     return f"MIDI {int(value)}"
 
 
@@ -87,6 +92,8 @@ def _instruction(
         return f"Mové {label} para detectar su posición"
     if kind == "boolean":
         return f'{"Activá" if bool(target) else "Desactivá"} {label}'
+    if kind == "loop_size":
+        return f"Seleccioná {format_loop_size(int(target))} en {label}"
     if float(current) < float(target):
         return f"Subí {label}"
     return f"Bajá {label}"
@@ -144,19 +151,23 @@ def compare_initial_state(
         reference_deck = reference_state[section]
         current_deck = current_state[section]
         for control, label in CONTINUOUS_CONTROLS:
-            reference_value = reference_deck[control]
-            current_value = current_deck[control]
+            # Las referencias creadas antes de CC36/CC37 no contenían este
+            # campo; siguen siendo practicables sin inventar un tamaño.
+            if control == "loop_size" and control not in reference_deck:
+                continue
+            reference_value = reference_deck.get(control, {})
+            current_value = current_deck.get(control, {})
             tolerance = (
                 TRACK_POSITION_TOLERANCE
                 if control == "track_progress"
-                else MIDI_TOLERANCE
+                else 5 if control == "loop_size" else MIDI_TOLERANCE
             )
             items.append(
                 _make_item(
                     section,
                     control,
                     f"{label} {deck_label}",
-                    "midi",
+                    "loop_size" if control == "loop_size" else "midi",
                     reference_value.get("midi"),
                     current_value.get("midi"),
                     bool(reference_value.get("received")),

@@ -185,7 +185,7 @@ def event_matches_step(event: dict[str, Any], step: dict[str, Any]) -> bool:
         return False
     value = int(event.get("value", 0))
     if step["kind"] == "transport":
-        return (value >= 64) == bool(step["target_active"])
+        return (value > 0) == bool(step["target_active"])
     target = int(step["target_value"])
     if step["kind"] == "selector":
         return abs(value - target) <= 5

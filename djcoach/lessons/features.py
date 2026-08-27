@@ -190,7 +190,7 @@ def extract_take_features(take: Take) -> dict[str, Any]:
             "control": event.get("control"),
             "elapsed_seconds": _elapsed(event),
             "value": int(event.get("value", 0)),
-            "active": int(event.get("value", 0)) >= 64,
+            "active": int(event.get("value", 0)) > 0,
         }
         if event.get("control") == "loop_active" and transport_event["active"]:
             loop_midi = loop_size_at_activation(

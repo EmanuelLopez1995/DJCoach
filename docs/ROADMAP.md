@@ -204,6 +204,15 @@ no se afirma si un deck va adelantado o atrasado.
 - [x] Historial de avisos recientes.
 - [ ] Pantalla de configuración de reglas y umbrales.
 - [x] Pantalla inicial para seleccionar canciones y crear una lección.
+- [x] Modo alumno con jerarquía de instructor: contexto, timeline, AHORA,
+  DESPUÉS y feedback inmediato.
+- [x] Agrupación visual de consignas por intención: Entrada, EQ, Bass Swap,
+  Loop, FX y Mezcla.
+- [x] Tiempo restante expresado en beats o compases cuando hay BPM disponible.
+- [x] Mixer pedagógico que refleja posiciones MIDI reales del alumno.
+- [x] Ghost estático del profesor, dirección y target para controles continuos.
+- [x] Resaltado simultáneo de todos los controles implicados en la fase actual.
+- [x] Feedback compacto GOOD/PERFECT/EARLY/LATE/MISSED y combo secundario.
 - [ ] Vista rítmica con beat, compás y frase.
 - [ ] Vista de estructura/onda de cada canción.
 - [ ] Historial completo de la sesión dentro del frontend.
@@ -221,9 +230,10 @@ no se afirma si un deck va adelantado o atrasado.
 6. [x] Grabación guiada de un intento del alumno.
 7. [ ] Calibrar con sesiones reales la comparación tolerante y el informe inicial.
 8. [ ] Historial de reintentos.
-9. [ ] Ghost visual.
-10. [ ] Identificación automática del track cargado en Traktor.
-11. [ ] Análisis musical avanzado de archivos y audio.
+9. [x] Ghost visual de posición objetivo.
+10. [ ] Trayectoria temporal del ghost para movimientos continuos.
+11. [ ] Identificación automática del track cargado en Traktor.
+12. [ ] Análisis musical avanzado de archivos y audio.
 
 ## Fuera de alcance por ahora
 

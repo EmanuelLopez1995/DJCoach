@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from html import escape
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from nicegui import ui
 
@@ -18,6 +19,9 @@ from djcoach.lessons import (
     AttemptRepository,
     GuidedPracticeRecorder,
     FEATURE_SCHEMA_VERSION,
+    build_guidance_moments,
+    build_guidance_steps,
+    event_matches_step,
     evaluate_preparation,
     extract_take_features,
     compare_initial_state,
@@ -52,11 +56,57 @@ PRODUCT_CSS = """
 .approval-panel { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-top:24px; padding:18px; border:1px solid #31506a; border-radius:14px; background:#0d1821; }.approval-state { color:#aeb9c7; }
 .guidance-card { display:grid; gap:10px; margin:20px 0; padding:24px; border:1px solid #ff4fd8; border-radius:18px; background:linear-gradient(145deg,#18101b,#0b1118); }.guidance-state { color:#ff83e4; font-size:11px; font-weight:800; letter-spacing:.14em; }.guidance-action { min-height:58px; color:#fff; font-size:26px; font-weight:800; line-height:1.25; }.guidance-time { color:#ffb4ed; font-family:monospace; }.next-action { padding:14px; border:1px solid #263140; border-radius:11px; color:#93a1b3; background:#0b1118; }.practice-progress { color:#94a2b3; }
 .moment-shell { display:grid; gap:9px; }.moment-title { color:#8fa0b5; font-size:10px; font-weight:800; letter-spacing:.14em; }.moment-lanes { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }.moment-lane { min-height:72px; padding:11px; border:1px solid #263140; border-radius:11px; background:#0b1118; }.moment-lane.deck-a { border-top:2px solid #36d7ff; }.moment-lane.deck-b { border-top:2px solid #ff4fd8; }.moment-lane.mixer { border-top:2px solid #ffb648; }.lane-title { margin-bottom:7px; color:#8996a7; font-size:10px; font-weight:800; letter-spacing:.1em; }.lane-action { display:flex; gap:7px; margin-top:5px; color:#edf2f7; line-height:1.35; }.lane-action.done { color:#58e5a3; }.lane-action.missed { color:#ffb648; }.moment-empty { color:#657386; }.moment-previous,.moment-next { padding:13px; border:1px solid #263140; border-radius:13px; background:#0b1118; opacity:.86; }.moment-current { padding:16px; border:1px solid #ff4fd8; border-radius:15px; background:#120d16; }
+.guided-product-page { width:min(1280px,calc(100vw - 28px)); padding-top:18px; }
+.guided-topnav { display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:8px; }.guided-brand { color:#ff83e4; font-size:11px; font-weight:900; letter-spacing:.16em; }
+.guided-shell { display:grid; gap:16px; width:100%; padding:18px; border:0; background:linear-gradient(155deg,#101720,#0a0f16); box-shadow:0 20px 70px #0007; }
+.coach-context { display:grid; grid-template-columns:minmax(220px,1.7fr) repeat(5,minmax(105px,.62fr)); gap:10px; align-items:stretch; }.context-cell { display:grid; align-content:center; min-height:66px; padding:10px 14px; border-radius:11px; background:#0a1017; }.context-cell span { color:#8291a5; font-size:10px; font-weight:900; letter-spacing:.12em; }.context-cell strong { margin-top:5px; color:#f1f5fa; font-size:16px; }.context-cell.lesson strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.coach-timeline { display:flex; gap:0; overflow-x:auto; padding:5px 2px 12px; scrollbar-width:thin; }.timeline-step { position:relative; display:flex; flex:0 0 auto; align-items:center; gap:9px; min-width:155px; padding-right:34px; color:#748297; }.timeline-step:not(:last-child)::after { content:""; position:absolute; right:8px; width:18px; height:1px; background:#3b4758; }.timeline-step .timeline-icon { display:grid; place-items:center; width:30px; height:30px; border:1px solid #526075; border-radius:50%; font-size:13px; }.timeline-step .timeline-label { max-width:118px; overflow:hidden; font-size:12px; font-weight:850; text-overflow:ellipsis; white-space:nowrap; }.timeline-step.completed { color:#58e5a3; }.timeline-step.completed .timeline-icon { border-color:#58e5a3; background:#10251f; }.timeline-step.current { color:#fff; }.timeline-step.current .timeline-icon { border-color:#ff4fd8; background:#ff4fd8; color:#160b15; box-shadow:0 0 14px #ff4fd877; }.timeline-step.problem { color:#ffbd59; }.timeline-step.problem .timeline-icon { border-color:#ffbd59; background:#2a1e0b; }
+.coach-layout { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(300px,.8fr); gap:16px; }.coach-sidebar { display:grid; gap:12px; align-content:start; }
+.coach-now { position:relative; min-height:360px; padding:34px 38px 30px; overflow:hidden; border-radius:18px; background:radial-gradient(circle at 100% 0,#ff4fd81c,transparent 42%),#0b1118; box-shadow:inset 4px 0 #ff4fd8; }.coach-eyebrow { color:#ff83e4; font-size:13px; font-weight:900; letter-spacing:.2em; }.coach-now h2 { margin:12px 0 8px; color:#fff; font-size:clamp(34px,3.2vw,52px); font-weight:900; letter-spacing:.02em; }.coach-objective { max-width:760px; margin:0 0 16px; color:#b1bdca; font-size:16px; line-height:1.45; }.coach-time-pill { display:inline-flex; margin-top:5px; padding:8px 12px; border-radius:999px; background:#35163a; color:#ffd0f4; font-size:14px; font-weight:900; }
+.coach-focus-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin:18px 0 16px; }.coach-focus-action { --focus:#ff4fd8; display:grid; grid-template-columns:58px 1fr; gap:13px; align-items:center; min-height:86px; padding:14px 16px; border-radius:13px; background:#101822; box-shadow:inset 4px 0 var(--focus),0 8px 24px #0005; }.coach-focus-action.deck-a { --focus:#36d7ff; }.coach-focus-action.mixer { --focus:#ffb648; }.coach-focus-action.done { --focus:#58e5a3; }.coach-focus-icon { display:grid; place-items:center; width:52px; height:52px; border:1px solid color-mix(in srgb,var(--focus) 65%,#fff); border-radius:13px; background:color-mix(in srgb,var(--focus) 12%,#121820); color:var(--focus); font-size:28px; font-weight:900; }.coach-focus-copy { min-width:0; }.coach-focus-copy small { display:block; margin-bottom:3px; color:var(--focus); font-size:11px; font-weight:900; letter-spacing:.14em; }.coach-focus-copy strong { display:block; color:#fff; font-size:clamp(18px,1.55vw,24px); line-height:1.2; }.coach-focus-copy em { display:block; margin-top:7px; color:#9fadc0; font-size:12px; font-style:normal; font-weight:700; }.coach-focus-action.done strong { color:#58e5a3; }
+.coach-actions { display:grid; gap:10px; }.coach-action { display:grid; grid-template-columns:42px 1fr; gap:12px; align-items:center; padding:13px 0; }.coach-action + .coach-action { border-top:1px solid #222c38; }.coach-action-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:10px; background:#171e27; color:#fff; font-size:20px; }.coach-action-copy small { display:block; margin-bottom:2px; font-size:10px; font-weight:900; letter-spacing:.13em; }.coach-action-copy strong { display:block; color:#f7f9fc; font-size:clamp(20px,2.2vw,30px); line-height:1.15; }.coach-action.deck-a small { color:#36d7ff; }.coach-action.deck-b small { color:#ff4fd8; }.coach-action.mixer small { color:#ffb648; }.coach-action.done strong { color:#58e5a3; text-decoration:line-through; opacity:.8; }.coach-action.problem strong { color:#ffbd59; }
+.visual-mixer { display:grid; grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr); gap:18px; margin-top:18px; padding:20px; border-radius:16px; background:linear-gradient(180deg,#0a0f15,#070a0e); box-shadow:inset 0 0 0 1px #273241,inset 0 18px 45px #11192366; }.visual-deck { --deck:#36d7ff; display:grid; gap:16px; min-width:0; padding:18px; border-radius:14px; background:#0d141c; }.visual-deck.deck-b { --deck:#ff4fd8; }.visual-deck-title { display:flex; justify-content:space-between; color:var(--deck); font-size:13px; font-weight:900; letter-spacing:.16em; }.visual-deck-title span:last-child { color:#78869a; font-size:10px; }.visual-knobs { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }.coach-knob-control { display:grid; justify-items:center; gap:7px; min-width:0; padding:10px 5px; border-radius:10px; opacity:.55; transition:opacity .15s,background .15s,box-shadow .15s; }.coach-knob-control.involved { opacity:1; background:color-mix(in srgb,var(--deck) 10%,transparent); box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--deck) 60%,transparent),0 0 22px color-mix(in srgb,var(--deck) 20%,transparent); }.coach-knob-face { position:relative; width:68px; height:68px; border:3px solid #465365; border-radius:50%; background:radial-gradient(circle at 38% 30%,#46515e,#171d24 60%,#05070a); box-shadow:0 5px 10px #000b,inset 0 0 0 2px #0b0e12; }.coach-knob-control.involved .coach-knob-face { border-color:var(--deck); }.coach-knob-student,.coach-knob-ghost { position:absolute; inset:5px; border-radius:50%; }.coach-knob-student span { position:absolute; top:0; left:calc(50% - 1px); width:3px; height:26px; border-radius:2px; background:var(--deck); box-shadow:0 0 7px var(--deck); }.coach-knob-ghost span { position:absolute; top:-11px; left:calc(50% - 4px); width:8px; height:9px; border-radius:4px 4px 1px 1px; background:#fff; box-shadow:0 0 9px #fff; }.coach-knob-label { color:#d3dbe5; font-size:11px; font-weight:900; }.coach-knob-readout { min-height:20px; color:#8391a4; font-size:10px; font-weight:700; text-align:center; }.coach-knob-control.involved .coach-knob-readout { color:var(--deck); font-size:11px; }.control-direction { font-size:12px; font-weight:900; }
+.visual-deck-lower { display:grid; grid-template-columns:92px 1fr; gap:14px; }.coach-fader-wrap { display:grid; justify-items:center; gap:6px; padding:10px 6px; border-radius:10px; opacity:.55; }.coach-fader-wrap.involved { opacity:1; background:color-mix(in srgb,var(--deck) 10%,transparent); box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--deck) 60%,transparent); }.coach-fader { position:relative; width:48px; height:145px; }.coach-fader-rail { position:absolute; top:4px; bottom:4px; left:22px; width:5px; border-radius:3px; background:#020305; box-shadow:inset 0 0 0 1px #455164; }.coach-fader-target { position:absolute; left:3px; width:42px; height:4px; background:#fff; box-shadow:0 0 8px #fff; }.coach-fader-handle { position:absolute; left:1px; width:46px; height:18px; border:1px solid #6b7889; border-radius:4px; background:linear-gradient(#596575,#12161b); box-shadow:0 3px 7px #000; }.coach-button-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; align-content:start; }.coach-mixer-button { position:relative; min-height:58px; padding:11px 6px 7px; border:1px solid #3a4656; border-radius:9px; background:linear-gradient(#28313c,#11151a); color:#8491a3; font-size:11px; font-weight:900; text-align:center; opacity:.62; }.coach-mixer-button.on { color:#eaf6ff; }.coach-mixer-button .button-led { display:block; width:9px; height:9px; margin:0 auto 6px; border-radius:50%; background:#465265; }.coach-mixer-button.on .button-led { background:var(--deck); box-shadow:0 0 10px var(--deck); }.coach-mixer-button.involved { opacity:1; border:2px solid var(--deck); color:#fff; box-shadow:0 0 20px color-mix(in srgb,var(--deck) 28%,transparent); }.coach-mixer-button.involved::after { content:"AHORA"; position:absolute; top:4px; right:5px; color:var(--deck); font-size:7px; letter-spacing:.08em; }
+.visual-center { display:grid; align-content:end; min-width:0; padding:10px 5px 16px; }.visual-center-label { margin-bottom:8px; color:#ffb648; font-size:8px; font-weight:900; letter-spacing:.12em; text-align:center; }.coach-crossfader { position:relative; height:42px; padding:0 8px; opacity:.48; }.coach-crossfader.involved { opacity:1; }.coach-cross-rail { position:absolute; top:19px; left:8px; right:8px; height:4px; border-radius:3px; background:#020305; box-shadow:inset 0 0 0 1px #354050; }.coach-cross-target { position:absolute; top:8px; width:3px; height:25px; background:#fff; box-shadow:0 0 7px #fff; }.coach-cross-handle { position:absolute; top:7px; width:15px; height:28px; border:1px solid #657181; border-radius:3px; background:linear-gradient(90deg,#4b5663,#12161b); }.coach-cross-labels { display:flex; justify-content:space-between; color:#758295; font-size:8px; font-weight:900; }.coach-action-strip { display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }.coach-action-chip { display:flex; align-items:center; gap:6px; padding:6px 9px; border-radius:999px; background:#131b24; color:#aab6c4; font-size:9px; font-weight:800; }.coach-action-chip.deck-a { box-shadow:inset 2px 0 #36d7ff; }.coach-action-chip.deck-b { box-shadow:inset 2px 0 #ff4fd8; }.coach-action-chip.mixer { box-shadow:inset 2px 0 #ffb648; }.coach-action-chip.done { color:#58e5a3; }.mixer-legend { display:flex; justify-content:center; gap:14px; margin-top:7px; color:#566477; font-size:7px; }.mixer-legend i { display:inline-block; width:8px; height:2px; margin-right:4px; vertical-align:middle; }.mixer-legend .student { background:#36d7ff; }.mixer-legend .teacher { background:#fff; }
+.coach-side-card { padding:22px 23px; border-radius:14px; background:#0b1118; }.coach-side-title { margin-bottom:14px; color:#91a0b4; font-size:11px; font-weight:900; letter-spacing:.16em; }.coach-next-time { margin:-7px 0 12px; color:#ffc9f1; font-size:15px; font-weight:900; }.coach-next-intent { margin-bottom:10px; color:#f5f7fa; font-size:21px; font-weight:900; }.coach-next-action { display:flex; gap:10px; padding:9px 0; color:#ccd4de; font-size:14px; line-height:1.4; }.coach-empty-note { color:#8b99ab; font-size:14px; line-height:1.5; }
+.feedback-list { display:grid; gap:13px; }.feedback-item { display:grid; grid-template-columns:26px 1fr; gap:9px; color:#aeb8c5; font-size:14px; line-height:1.35; }.feedback-item.success { color:#58e5a3; }.feedback-item.warning { color:#ffbd59; }.feedback-item.problem { color:#ff7b76; }.feedback-item.pending { color:#91a0b3; }.feedback-copy { display:grid; gap:3px; }.feedback-verdict { font-size:15px; font-weight:900; letter-spacing:.09em; }.feedback-detail { color:#a0adbd; font-size:12px; }.feedback-combo { margin-top:13px; color:#ffb648; font-size:14px; font-weight:900; letter-spacing:.12em; }
+.guided-controls { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:2px; }.practice-progress { color:#7e8b9c; font-size:12px; }.guided-actions { display:flex; gap:9px; }
 .result-score { color:#ff4fd8; font-size:48px; font-weight:900; }.result-row { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.result-ok { color:#58e5a3; }.result-missed { color:#ffb648; }
+.lesson-plan-dialog{position:relative;width:min(980px,calc(100vw - 48px));max-width:980px;max-height:86vh;padding:0!important;overflow:hidden;background:#0d141d!important;color:#edf3fa}.lesson-plan-close{position:absolute!important;top:12px;right:14px;z-index:4;color:#b9c5d3!important}.lesson-plan-header{display:flex;justify-content:space-between;align-items:start;gap:18px;padding:20px 62px 14px 24px;border-bottom:1px solid #273343}.lesson-plan-header h2{margin:3px 0 5px;font-size:26px}.lesson-plan-header p{margin:0;color:#8f9daf}.lesson-plan-count{flex:0 0 auto;padding:7px 11px;border-radius:999px;background:#281329;color:#ff8be6;font-size:11px;font-weight:900}.lesson-plan-list{display:grid;gap:11px;max-height:calc(86vh - 168px);padding:14px 18px;overflow-y:auto}.lesson-plan-moment{padding:9px;border:1px solid #25303e;border-radius:12px;background:#080e15;transition:opacity .15s,border-color .15s}.lesson-plan-moment.current{border-color:#ff4fd8;box-shadow:0 0 18px #ff4fd81c}.lesson-plan-moment.locked{opacity:.42}.lesson-plan-moment-head{display:flex;align-items:center;gap:9px;margin-bottom:8px;padding:0 3px}.lesson-plan-time{color:#ffb648;font-family:monospace;font-size:11px;font-weight:800}.lesson-plan-now,.lesson-plan-simultaneous{padding:4px 7px;border-radius:999px;font-size:8px;font-weight:950;letter-spacing:.1em}.lesson-plan-now{display:none;background:#45133c;color:#ff91e8}.lesson-plan-moment.current .lesson-plan-now{display:inline-flex}.lesson-plan-simultaneous{background:#172738;color:#8cddff}.lesson-plan-actions{display:grid;grid-template-columns:1fr;gap:7px}.lesson-plan-actions.simultaneous{grid-template-columns:repeat(2,minmax(0,1fr))}.lesson-plan-row{display:grid;grid-template-columns:34px 78px 1fr;gap:9px;align-items:center;min-height:50px;padding:8px 10px;border:1px solid #25303e;border-radius:9px;background:#0c141d}.lesson-plan-row.current{border-color:#6d365f;background:#17101a}.lesson-plan-row.completed{border-color:#2f8a63;background:#0d211a;opacity:.78}.lesson-plan-order{display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:#1b2531;color:#fff;font-size:11px;font-weight:900}.lesson-plan-row.current .lesson-plan-order{background:#ff4fd8;color:#180b15}.lesson-plan-row.completed .lesson-plan-order{background:#58e5a3;color:#06130d}.lesson-plan-section{color:#7bdfff;font-size:10px;font-weight:900;letter-spacing:.08em}.lesson-plan-row.deck-b .lesson-plan-section{color:#ff75df}.lesson-plan-row.mixer .lesson-plan-section{color:#ffb648}.lesson-plan-instruction{color:#e7edf5;font-size:13px;font-weight:750;line-height:1.3}.lesson-plan-row.completed .lesson-plan-instruction{color:#72e9ad;text-decoration:line-through}.lesson-plan-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 18px;border-top:1px solid #273343;background:#0a1017}.lesson-plan-live{color:#58e5a3;font-size:11px;font-weight:850}.lesson-plan-footer-actions{display:flex;gap:8px}
 .calibration-summary { color:#ffb4ed; font-weight:700; }.hardware-legend { display:flex; flex-wrap:wrap; gap:16px; margin:10px 0 14px; color:#8fa0b5; font-size:12px; }.legend-current,.legend-target { display:inline-block; width:12px; height:3px; margin-right:5px; vertical-align:middle; }.legend-current { background:#36d7ff; }.legend-target { background:#ff4fd8; }.hardware-mixer { display:grid; grid-template-columns:1fr .72fr 1fr; gap:12px; margin:12px 0 18px; }.hardware-deck,.hardware-center { padding:16px; border:1px solid #303a48; border-radius:16px; background:linear-gradient(160deg,#171d25,#090d12); box-shadow:inset 0 0 24px #0005; }.hardware-deck.deck-a { border-top:2px solid #36d7ff; }.hardware-deck.deck-b { border-top:2px solid #ff4fd8; }.hardware-title { margin-bottom:13px; color:#d9e2ec; font-size:12px; font-weight:900; letter-spacing:.14em; text-align:center; }.knob-bank { display:grid; grid-template-columns:repeat(3,1fr); gap:14px 8px; }.hw-control { display:grid; justify-items:center; gap:6px; min-width:0; }.hw-label { color:#c7d0dc; font-size:10px; font-weight:800; letter-spacing:.05em; text-align:center; }.hw-values { color:#778598; font-size:9px; text-align:center; }.knob-face { position:relative; width:52px; height:52px; border:3px solid #3a4553; border-radius:50%; background:radial-gradient(circle at 40% 32%,#3a414b,#15191f 62%,#07090c); box-shadow:0 5px 8px #0009,inset 0 0 0 2px #0b0e12; }.hw-control.matched .knob-face { border-color:#3a9b70; }.knob-pointer,.knob-target { position:absolute; inset:4px; border-radius:50%; }.knob-pointer span { position:absolute; top:1px; left:calc(50% - 1px); width:2px; height:19px; border-radius:2px; background:#36d7ff; box-shadow:0 0 5px #36d7ff; }.knob-target span { position:absolute; top:-8px; left:calc(50% - 2px); width:4px; height:8px; border-radius:2px; background:#ff4fd8; box-shadow:0 0 5px #ff4fd8; }
 .deck-lower { display:grid; grid-template-columns:84px 1fr; gap:12px; margin-top:18px; }.vertical-fader { position:relative; width:48px; height:150px; margin:4px auto; }.vertical-fader .fader-rail { position:absolute; top:5px; bottom:5px; left:22px; width:4px; border-radius:4px; background:#05070a; box-shadow:inset 0 0 0 1px #35404d; }.vertical-fader .target-line { position:absolute; left:6px; width:36px; height:3px; background:#ff4fd8; box-shadow:0 0 5px #ff4fd8; }.vertical-fader .fader-handle { position:absolute; left:3px; width:42px; height:17px; border-radius:4px; background:linear-gradient(#4b5562,#15191e); border:1px solid #667280; box-shadow:0 3px 6px #000; }.fader-name { color:#c7d0dc; font-size:10px; font-weight:800; text-align:center; }.button-bank { display:grid; grid-template-columns:1fr 1fr; align-content:start; gap:8px; }.hw-button { min-height:44px; padding:7px; border:1px solid #3a4553; border-radius:7px; background:linear-gradient(#2c333c,#12161b); color:#aab5c2; font-size:9px; font-weight:800; text-align:center; }.hw-button .led { display:block; width:7px; height:7px; margin:0 auto 5px; border-radius:50%; background:#3b4652; }.hw-button.on .led { background:#36d7ff; box-shadow:0 0 7px #36d7ff; }.hw-button.mismatch { border-color:#ff4fd8; }.hw-button .target-state { display:block; margin-top:3px; color:#ff83e4; font-size:8px; }.track-slider,.crossfader-visual { position:relative; height:38px; margin:9px 4px 15px; }.horizontal-rail { position:absolute; top:17px; left:5px; right:5px; height:4px; border-radius:4px; background:#05070a; box-shadow:inset 0 0 0 1px #35404d; }.horizontal-target { position:absolute; top:7px; width:3px; height:24px; background:#ff4fd8; box-shadow:0 0 5px #ff4fd8; }.horizontal-handle { position:absolute; top:5px; width:17px; height:28px; border-radius:4px; background:linear-gradient(90deg,#4b5562,#15191e); border:1px solid #667280; box-shadow:2px 2px 6px #000; }.center-block { margin-top:18px; padding:11px; border:1px solid #2e3947; border-radius:11px; background:#0b1016; }.clock-display { padding:12px; border:1px solid #2e3947; border-radius:9px; background:#070b10; text-align:center; }.clock-bpm { color:#f4f7fb; font-size:24px; font-weight:900; }.clock-target { color:#ff83e4; font-size:10px; }.hardware-instructions { display:grid; gap:6px; margin:10px 0; }.hardware-instruction { padding:8px 10px; border-left:3px solid #ff4fd8; border-radius:6px; background:#17101a; color:#d7b5d0; font-size:11px; }
+.coach-now,.visual-mixer{box-sizing:border-box}.coach-knob-control,.coach-fader-wrap,.coach-mixer-button { position:relative; }.control-move-arrow { position:absolute; z-index:5; display:grid; justify-items:center; right:-9px; top:22px; color:var(--deck,#ffb648); filter:drop-shadow(0 0 8px currentColor); pointer-events:none; }.control-move-arrow span { font-size:34px; font-weight:900; line-height:.8; }.control-move-arrow small { margin-top:4px; font-size:8px; font-weight:950; letter-spacing:.08em; }.control-move-arrow.ready { color:#58e5a3; }.control-move-arrow.tap { right:3px; top:-13px; color:var(--deck,#ffb648); }.control-move-arrow.tap span { font-size:17px; }.coach-fader-wrap>.control-move-arrow { right:-5px; top:62px; }.coach-crossfader>.control-move-arrow { right:0; top:-35px; }.coach-crossfader>.control-move-arrow.down,.coach-crossfader>.control-move-arrow.up { transform:rotate(90deg); }
+.prepare-product-page{width:min(1540px,calc(100vw - 28px));padding-top:24px}.prepare-product-page .product-header{margin-bottom:16px}.prepare-shell{display:grid;grid-template-columns:minmax(270px,.68fr) minmax(0,1.65fr);grid-template-areas:"chip controller" "tracks controller" "readiness controller" "title controller" "summary controller" "legend controller" "instructions controller" "note controller" "plan controller" "start controller";column-gap:18px;row-gap:12px;align-items:start;padding:20px}.prepare-shell>.stage-chip{grid-area:chip}.prepare-shell>.prep-grid{grid-area:tracks;grid-template-columns:1fr;margin:0}.prepare-shell>.readiness-list{grid-area:readiness}.prepare-shell>.prepare-title{grid-area:title;margin:4px 0 0}.prepare-title h2{margin:0;color:#f4f7fb;font-size:clamp(23px,2vw,32px);line-height:1.08}.prepare-shell>.calibration-summary{grid-area:summary}.prepare-shell>.prepare-calibration-view{display:contents}.prepare-shell .hardware-legend{grid-area:legend;margin:0}.prepare-shell .hardware-instructions{grid-area:instructions;margin:0;max-height:210px;overflow:auto}.prepare-shell .hardware-mixer{grid-area:controller;align-self:start;margin:0;min-width:0}.prepare-shell>.prepare-note{grid-area:note}.prepare-shell>.prepare-plan-button{grid-area:plan;justify-self:start}.prepare-shell>.prepare-start-button{grid-area:start;justify-self:start}.prepare-shell .track-check-card{padding:13px}.prepare-shell .track-check-card .track-name{min-height:0;margin-bottom:8px;font-size:14px}.prepare-shell .readiness-list{gap:6px;padding:12px}.prepare-shell .readiness-line{font-size:12px}
+@media(min-width:1051px){
+  .guided-product-page{width:min(1640px,calc(100vw - 24px));height:calc(100dvh - 32px);padding:8px 0 10px;overflow:hidden}
+  .guided-topnav{height:30px;margin:0}
+  .guided-shell{grid-template-rows:auto auto minmax(0,1fr) auto;height:calc(100dvh - 80px);max-height:908px;padding:12px 14px;gap:10px;overflow:hidden}
+  .coach-context{grid-template-columns:minmax(230px,1.7fr) repeat(5,minmax(100px,.62fr));gap:8px}.context-cell{min-height:56px;padding:8px 12px}.context-cell strong{font-size:14px}
+  .coach-timeline{padding:2px 2px 7px}.timeline-step{min-width:145px}.timeline-step .timeline-icon{width:26px;height:26px}.timeline-step .timeline-label{font-size:11px}
+  .coach-layout{grid-template-columns:minmax(0,1fr) 300px;min-height:0;gap:12px}.coach-sidebar{min-height:0;grid-template-rows:auto minmax(0,1fr)}.coach-side-card{padding:17px 18px;overflow:auto}
+  .coach-now{display:grid;grid-template-columns:minmax(230px,.38fr) minmax(0,1fr);gap:18px;min-height:0;height:100%;max-height:100%;padding:20px 22px}.coach-brief{min-width:0;align-self:start}.coach-stage{display:grid;min-width:0;min-height:0;overflow:hidden}.coach-now h2{font-size:clamp(30px,2.5vw,43px)}.coach-objective{font-size:14px}.coach-time-pill{font-size:12px;padding:6px 10px}
+  .coach-focus-grid{grid-template-columns:1fr;gap:9px;margin:15px 0 0;max-height:310px;overflow:auto}.coach-focus-action{grid-template-columns:44px 1fr;min-height:68px;padding:10px 11px}.coach-focus-icon{width:40px;height:40px;font-size:22px}.coach-focus-copy strong{font-size:17px}.coach-focus-copy em{font-size:10px;margin-top:4px}
+  .visual-mixer{grid-template-columns:minmax(0,1fr) 105px minmax(0,1fr);align-self:stretch;min-height:0;height:100%;max-height:570px;margin:0;padding:13px;gap:10px}.visual-deck{align-self:center;min-height:0;gap:11px;padding:13px}.visual-deck-title{font-size:12px}.visual-knobs{gap:4px}.coach-knob-control{gap:4px;padding:7px 2px}.coach-knob-face{width:64px;height:64px}.coach-knob-student span{height:24px}.coach-knob-label{font-size:10px}.coach-knob-readout{font-size:9px}.visual-deck-lower{grid-template-columns:78px 1fr;gap:9px}.coach-fader{height:130px}.coach-button-grid{gap:6px}.coach-mixer-button{min-height:48px;padding:8px 4px 5px;font-size:10px}.visual-center{padding-bottom:12px}.mixer-legend{font-size:8px}
+  .guided-controls{min-height:34px}.practice-progress{font-size:11px}
+}
+@media(min-width:1051px) and (max-width:1400px){
+  .coach-now{grid-template-columns:1fr;grid-template-rows:104px minmax(0,1fr);align-self:start;height:calc(100dvh - 266px);max-height:calc(100dvh - 266px);min-height:0;gap:8px;padding:12px 14px;overflow:hidden}.coach-brief{display:grid;grid-template-columns:minmax(205px,.42fr) minmax(0,1fr);grid-template-rows:auto auto auto auto;column-gap:14px;align-items:start;max-height:104px;overflow:hidden}.coach-eyebrow,.coach-now h2,.coach-objective,.coach-time-pill{grid-column:1}.coach-eyebrow{grid-row:1}.coach-now h2{grid-row:2;margin:3px 0 1px;font-size:24px}.coach-objective{grid-row:3;margin-bottom:3px;font-size:10px}.coach-time-pill{grid-row:4;width:max-content;margin:0}.coach-focus-grid{grid-column:2;grid-row:1/5;align-self:center;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;max-height:100px}.coach-focus-action{min-height:46px}.coach-stage{min-height:0;overflow:hidden}.visual-mixer{min-height:0;max-height:none;overflow:hidden}.coach-layout{grid-template-columns:minmax(0,1fr) 260px;overflow:hidden}.coach-side-card{padding:14px 15px}.coach-next-intent{font-size:17px}.coach-next-action,.feedback-item{font-size:12px}
+  .coach-knob-face{width:54px;height:54px}.coach-knob-student span{height:19px}.visual-deck{gap:5px;padding:7px 9px}.visual-deck-lower{grid-template-columns:64px 1fr;gap:5px}.coach-fader{height:84px}.coach-button-grid{gap:4px}.coach-mixer-button{min-height:31px;padding:4px 3px 2px;font-size:8px}.coach-mixer-button .button-led{margin-bottom:3px}
+}
 @media(max-width:800px){.mode-grid,.lesson-tracks{grid-template-columns:1fr}.product-header h1{font-size:32px}}
 @media(max-width:850px){.prep-grid,.review-grid,.moment-lanes,.hardware-mixer{grid-template-columns:1fr}.timeline-row{grid-template-columns:70px 1fr}.timeline-detail{grid-column:1/-1}.hardware-center{order:3}}
+@media(max-width:900px){.prepare-product-page{width:min(100%,calc(100vw - 20px))}.prepare-shell{display:flex;flex-direction:column}.prepare-shell>.prepare-calibration-view{display:block;width:100%}.prepare-shell .hardware-mixer{width:100%}.prepare-shell>.prep-grid,.prepare-shell>.readiness-list,.prepare-shell>.prepare-title,.prepare-shell>.calibration-summary,.prepare-shell>.prepare-note{width:100%}}
+@media(max-width:1050px){.coach-layout{grid-template-columns:1fr}.coach-sidebar{grid-template-columns:1fr 1fr}.visual-knobs{grid-template-columns:repeat(5,1fr)}.coach-now{padding:30px}.guided-controls{align-items:flex-start;flex-direction:column}.guided-actions{width:100%;flex-wrap:wrap}}
+@media(min-width:901px) and (max-width:1050px){
+  .guided-product-page{width:calc(100vw - 16px);height:calc(100dvh - 40px);padding:5px 0 7px;overflow:hidden}.guided-topnav{height:27px;margin:0}.guided-shell{grid-template-rows:auto auto minmax(0,1fr) auto;height:calc(100dvh - 79px);padding:9px 11px;gap:7px;overflow:hidden}
+  .coach-context{grid-template-columns:1.5fr repeat(2,1fr);gap:6px}.context-cell{min-height:42px;padding:5px 9px}.context-cell span{font-size:8px}.context-cell strong{font-size:12px}.coach-timeline{padding:0 2px 4px}.timeline-step{min-width:125px}.timeline-step .timeline-icon{width:23px;height:23px}.timeline-step .timeline-label{font-size:9px}
+  .coach-layout{display:grid;grid-template-rows:minmax(0,1fr) 88px;gap:7px;min-height:0}.coach-now{display:grid;grid-template-columns:190px minmax(0,1fr);gap:9px;min-height:0;height:100%;padding:12px 14px}.coach-brief{min-width:0}.coach-now h2{margin:5px 0;font-size:26px}.coach-objective{margin-bottom:7px;font-size:11px}.coach-time-pill{padding:4px 7px;font-size:10px}.coach-focus-grid{grid-template-columns:1fr;gap:5px;margin:8px 0 0;max-height:155px;overflow:auto}.coach-focus-action{grid-template-columns:32px 1fr;min-height:48px;padding:6px 8px}.coach-focus-icon{width:29px;height:29px;font-size:17px}.coach-focus-copy small{font-size:8px}.coach-focus-copy strong{font-size:13px}.coach-focus-copy em{margin-top:2px;font-size:8px}
+  .coach-stage{display:grid;min-width:0;min-height:0}.visual-mixer{grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);height:100%;margin:0;padding:7px;gap:5px;overflow:hidden}.visual-deck{align-self:center;gap:5px;padding:7px}.visual-deck-title{font-size:10px}.visual-deck-title span:last-child{font-size:8px}.visual-knobs{gap:1px}.coach-knob-control{gap:2px;padding:3px 1px}.coach-knob-face{width:50px;height:50px}.coach-knob-student span{height:18px}.coach-knob-label{font-size:8px}.coach-knob-readout{min-height:12px;font-size:7px}.visual-deck-lower{grid-template-columns:56px 1fr;gap:4px}.coach-fader{height:78px}.coach-fader-wrap{gap:2px;padding:3px}.coach-button-grid{gap:3px}.coach-mixer-button{min-height:30px;padding:4px 2px 2px;font-size:8px}.coach-mixer-button .button-led{width:6px;height:6px;margin-bottom:2px}.visual-center{padding:5px 2px 8px}.mixer-legend{margin-top:3px;font-size:7px}
+  .coach-sidebar{grid-template-columns:1fr 1fr;gap:7px}.coach-side-card{padding:9px 11px}.coach-side-title{margin-bottom:5px;font-size:8px}.coach-next-time{margin:0 0 4px;font-size:10px}.coach-next-intent{margin-bottom:3px;font-size:13px}.coach-next-action{padding:2px 0;font-size:9px}.feedback-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.feedback-item{grid-template-columns:16px 1fr;gap:3px;font-size:8px}.feedback-verdict{font-size:9px}.feedback-detail{font-size:7px}.guided-controls{min-height:30px;align-items:center;flex-direction:row}.guided-actions{width:auto;flex-wrap:nowrap}.practice-progress{font-size:9px}
+}
+@media(max-width:900px){.coach-context{grid-template-columns:1fr 1fr}.context-cell.lesson{grid-column:1/-1}.coach-sidebar{grid-template-columns:1fr}.visual-mixer{grid-template-columns:1fr;gap:12px}.visual-center{order:3;padding:12px 20px}.visual-knobs{grid-template-columns:repeat(5,1fr)}.coach-now{min-height:0;padding:25px 20px}.coach-focus-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.visual-deck{padding:13px}.visual-knobs{grid-template-columns:repeat(3,1fr)}.coach-knob-control{padding:7px 3px}.coach-knob-face{width:58px;height:58px}.coach-knob-student span{height:21px}.visual-deck-lower{grid-template-columns:78px 1fr}.coach-fader{height:125px}.coach-button-grid{gap:7px}.coach-mixer-button{min-height:50px;font-size:10px}}
+@media(max-width:520px){.coach-context{grid-template-columns:1fr 1fr}.context-cell{min-width:0;min-height:58px;padding:8px 10px}.context-cell strong{font-size:14px}.coach-now{padding:22px 14px}.guided-shell{padding:11px}.coach-layout{gap:12px}.visual-mixer{padding:10px;margin-left:-4px;margin-right:-4px}.coach-focus-action{grid-template-columns:48px 1fr;padding:12px}.coach-focus-icon{width:44px;height:44px}.coach-focus-copy strong{font-size:17px}}
 """
 
 
@@ -94,6 +144,72 @@ def section_label(section: str | None) -> str:
         "deck_b": "Deck B",
         "mixer": "Mixer",
     }.get(section or "", section or "General")
+
+
+def render_lesson_plan(
+    steps: list[dict[str, Any]], completed_step_ids: set[str] | None = None
+) -> str:
+    """Listado completo que el alumno puede consultar antes de practicar."""
+    completed = completed_step_ids or set()
+    step_numbers = {
+        str(step.get("id", "")): index
+        for index, step in enumerate(steps, start=1)
+    }
+    moments = build_guidance_moments(steps)
+    current_moment_index = next(
+        (
+            index
+            for index, moment in enumerate(moments)
+            if not all(
+                str(action.get("id", "")) in completed
+                for action in moment["actions"]
+            )
+        ),
+        len(moments),
+    )
+    rendered_moments = []
+    for moment_index, moment in enumerate(moments):
+        actions = moment["actions"]
+        simultaneous = len(actions) > 1
+        moment_state = (
+            "completed"
+            if moment_index < current_moment_index
+            else "current"
+            if moment_index == current_moment_index
+            else "locked"
+        )
+        rows = "".join(
+            '<div class="lesson-plan-row '
+            f'{escape(str(step.get("section", ""))).replace("_", "-")}'
+            f'{" completed" if str(step.get("id", "")) in completed else " current" if moment_state == "current" else " locked"}" '
+            f'data-step-id="{escape(str(step.get("id", "")))}" '
+            f'data-order="{step_numbers[str(step.get("id", ""))]}">'
+            f'<span class="lesson-plan-order">{"✓" if str(step.get("id", "")) in completed else step_numbers[str(step.get("id", ""))]}</span>'
+            f'<span class="lesson-plan-section">{escape(section_label(str(step.get("section", ""))).upper())}</span>'
+            f'<span class="lesson-plan-instruction">{escape(str(step.get("instruction", "")))}</span>'
+            '</div>'
+            for step in actions
+        )
+        rendered_moments.append(
+            f'<div class="lesson-plan-moment {moment_state}" data-moment-index="{moment_index}"><div class="lesson-plan-moment-head">'
+            f'<span class="lesson-plan-time">{format_seconds(moment.get("reference_seconds"))}</span>'
+            '<span class="lesson-plan-now">AHORA</span>'
+            f'{"<span class=\"lesson-plan-simultaneous\">SIMULTÁNEAS · HACÉ AMBAS</span>" if simultaneous else ""}'
+            '</div><div class="lesson-plan-actions '
+            f'{"simultaneous" if simultaneous else ""}">{rows}</div></div>'
+        )
+    body = "".join(rendered_moments)
+    if not body:
+        body = '<div class="coach-empty-note">La lección no tiene acciones practicables.</div>'
+    return (
+        '<section><div class="lesson-plan-header"><div>'
+        '<div class="product-kicker">ENSAYO SIN TIEMPO</div>'
+        '<h2>Probá toda la secuencia</h2>'
+        '<p>Hacé las acciones en Traktor: se marcarán sin límite de tiempo y no afectarán tu puntuación.</p>'
+        '</div>'
+        f'<span class="lesson-plan-count">{len(completed)} / {len(steps)}</span></div>'
+        f'<div class="lesson-plan-list">{body}</div></section>'
+    )
 
 
 def render_guidance_moment(
@@ -138,6 +254,520 @@ def render_guidance_moment(
         f'<div class="moment-shell moment-{variant}">'
         f'<div class="moment-title">{escape(title)}</div>'
         f'<div class="moment-lanes">{"".join(lanes)}</div></div>'
+    )
+
+
+def _moment_intent(moment: dict[str, Any] | None) -> tuple[str, str]:
+    """Resume acciones técnicas como una intención que el alumno reconoce."""
+    if not moment or not moment.get("actions"):
+        return "LISTO", "Esperá la próxima indicación del coach."
+    actions = moment["actions"]
+    controls = {str(action.get("control", "")) for action in actions}
+    sections = {str(action.get("section", "")) for action in actions}
+    deck = next(iter(sections)) if len(sections) == 1 else None
+    deck_text = section_label(deck).upper() if deck else ""
+    if "low" in controls and {"deck_a", "deck_b"}.issubset(sections):
+        return "BASS SWAP", "Intercambiá los graves manteniendo continuidad en la mezcla."
+    if controls & {"play", "transport_cue", "cue"}:
+        return (
+            f"PREPARÁ {deck_text}" if deck_text else "ENTRADA",
+            "Prepará la entrada del nuevo track en el momento indicado.",
+        )
+    if controls & {"loop_active", "loop_size"}:
+        return (
+            f"LOOP {deck_text}" if deck_text else "LOOP",
+            "Definí y activá el loop indicado para sostener la transición.",
+        )
+    if controls & {"low", "mid", "high", "gain"}:
+        return (
+            f"AJUSTE DE EQ {deck_text}" if deck_text else "AJUSTE DE EQ",
+            "Acomodá la ecualización para dejar espacio entre ambos tracks.",
+        )
+    if controls & {"fx_adjust", "fx_on"}:
+        return "EFECTO", "Aplicá el efecto como parte de la transición."
+    if controls & {"volume", "crossfader"}:
+        return "MEZCLA", "Equilibrá la salida audible de ambos decks."
+    if "sync" in controls:
+        return "SINCRONIZACIÓN", "Alineá el tempo antes de continuar."
+    return "SIGUIENTE MOVIMIENTO", "Completá las acciones indicadas."
+
+
+def _moment_short_label(moment: dict[str, Any]) -> str:
+    intent, _objective = _moment_intent(moment)
+    return intent.replace("PREPARÁ ", "ENTRADA ").title()
+
+
+def _action_icon(action: dict[str, Any]) -> str:
+    control = str(action.get("control", ""))
+    instruction = str(action.get("instruction", ""))
+    if control == "play":
+        return "▶"
+    if control in {"cue", "transport_cue"}:
+        return "◉"
+    if control in {"loop_active", "loop_size"}:
+        return "↻"
+    if control == "sync":
+        return "⟳"
+    if control in {"low", "mid", "high", "gain", "volume", "fx_adjust"}:
+        return "↓" if instruction.startswith(("Bajá", "Cerrá")) else "↑"
+    if control == "crossfader":
+        return "↔"
+    return "•"
+
+
+def _action_state(action: dict[str, Any]) -> str:
+    outcome = action.get("outcome")
+    if not outcome:
+        return ""
+    return "done" if outcome.get("status") == "completed" else "problem"
+
+
+def _musical_wait(seconds: float | int | None, bpm: float | None) -> str:
+    if seconds is None:
+        return ""
+    seconds = max(0.0, float(seconds))
+    if seconds <= 0.5:
+        return "AHORA"
+    approximate = f"≈ {seconds:.0f} s"
+    if not bpm:
+        return f"En {seconds:.0f} segundos"
+    beats = max(1, round(seconds * float(bpm) / 60.0))
+    if beats >= 4:
+        bars = max(1, round(beats / 4))
+        word = "compás" if bars == 1 else "compases"
+        return f"En {bars} {word} · {approximate}"
+    word = "beat" if beats == 1 else "beats"
+    return f"En {beats} {word} · {approximate}"
+
+
+def render_coach_context(lesson_name: str, status: dict[str, Any]) -> str:
+    context = status.get("musical_context", {})
+    step = status.get("current_moment_number", 0)
+    total = status.get("total_moments", 0)
+    bar = context.get("bar")
+    beat = context.get("beat")
+    bpm = context.get("bpm")
+    musical = f"Compás {bar} · Beat {beat}" if bar and beat else "Sin calibrar"
+    bpm_text = f"{float(bpm):.1f}" if bpm is not None else "---"
+    step_text = f"{step} de {total}" if total else "---"
+    phase = (
+        "INICIO"
+        if status.get("state") == "waiting_for_play"
+        else _moment_intent(status.get("current"))[0]
+        if status.get("current")
+        else "---"
+    )
+    return (
+        '<div class="coach-context">'
+        f'<div class="context-cell lesson"><span>LECCIÓN</span><strong>{escape(lesson_name)}</strong></div>'
+        f'<div class="context-cell"><span>PASO</span><strong>{step_text}</strong></div>'
+        f'<div class="context-cell"><span>FASE</span><strong>{escape(phase)}</strong></div>'
+        f'<div class="context-cell"><span>TIEMPO MUSICAL</span><strong>{escape(musical)}</strong></div>'
+        f'<div class="context-cell"><span>BPM</span><strong>{bpm_text}</strong></div>'
+        '<div class="context-cell"><span>MODO</span><strong>Práctica</strong></div>'
+        '</div>'
+    )
+
+
+def render_coach_timeline(status: dict[str, Any]) -> str:
+    timeline = status.get("timeline", [])
+    if not timeline:
+        return '<div class="coach-empty-note">La timeline aparecerá al iniciar.</div>'
+    phases: list[dict[str, Any]] = []
+    for moment in timeline:
+        label = _moment_short_label(moment)
+        if phases and phases[-1]["label"] == label:
+            phases[-1]["states"].append(moment["visual_state"])
+        else:
+            phases.append({"label": label, "states": [moment["visual_state"]]})
+    for phase in phases:
+        states = phase["states"]
+        if "current" in states:
+            phase["visual_state"] = "current"
+        elif "problem" in states:
+            phase["visual_state"] = "problem"
+        elif all(state == "completed" for state in states):
+            phase["visual_state"] = "completed"
+        else:
+            phase["visual_state"] = "pending"
+    if len(phases) > 6:
+        current_index = next(
+            (
+                index
+                for index, phase in enumerate(phases)
+                if phase["visual_state"] == "current"
+            ),
+            0,
+        )
+        start = max(0, min(current_index - 2, len(phases) - 6))
+        phases = phases[start : start + 6]
+    icons = {"completed": "✓", "current": "●", "pending": "○", "problem": "!"}
+    steps = "".join(
+        f'<div class="timeline-step {escape(str(phase["visual_state"]))}">'
+        f'<span class="timeline-icon">{icons.get(phase["visual_state"], "○")}</span>'
+        f'<span class="timeline-label">{escape(str(phase["label"]))}</span></div>'
+        for phase in phases
+    )
+    return f'<div class="coach-timeline">{steps}</div>'
+
+
+def _actions_by_control(
+    moment: dict[str, Any] | None,
+) -> dict[tuple[str, str], dict[str, Any]]:
+    actions = {}
+    for action in (moment or {}).get("actions", []):
+        section = str(action.get("section", ""))
+        control = str(action.get("control", ""))
+        actions[(section, control)] = action
+        if control == "loop_size":
+            actions.setdefault((section, "loop_active"), action)
+    return actions
+
+
+def _control_midi(deck: dict[str, Any], control: str) -> int | None:
+    value = deck.get(control, {})
+    if not isinstance(value, dict) or not value.get("received"):
+        return None
+    midi = value.get("midi")
+    return int(midi) if midi is not None else None
+
+
+def _boolean_state(deck: dict[str, Any], control: str) -> tuple[bool, bool]:
+    return bool(deck.get(control)), bool(deck.get(f"{control}_received"))
+
+
+def _control_target(action: dict[str, Any] | None) -> int | None:
+    if not action or action.get("target_value") is None:
+        return None
+    return int(action["target_value"])
+
+
+def _render_control_arrow(current: int | None, target: int | None) -> str:
+    """Indicador grande y cercano al control que debe mover el alumno."""
+    if current is None or target is None:
+        return ""
+    if target < current:
+        return '<div class="control-move-arrow down"><span>↓</span><small>BAJÁ</small></div>'
+    if target > current:
+        return '<div class="control-move-arrow up"><span>↑</span><small>SUBÍ</small></div>'
+    return '<div class="control-move-arrow ready"><span>✓</span><small>LISTO</small></div>'
+
+
+def _render_coach_knob(
+    deck: dict[str, Any],
+    section: str,
+    control: str,
+    label: str,
+    action: dict[str, Any] | None,
+) -> str:
+    current = _control_midi(deck, control)
+    target = _control_target(action)
+    involved = action is not None
+    current_for_angle = current if current is not None else 63
+    student_percentage = round(current_for_angle / 127 * 100)
+    ghost = (
+        f'<div class="coach-knob-ghost" style="transform:rotate({_knob_angle(target):.1f}deg)"><span></span></div>'
+        if target is not None
+        else ""
+    )
+    if current is None:
+        readout = "SIN MIDI"
+    elif target is None:
+        readout = f"{student_percentage}%"
+    else:
+        target_percentage = round(target / 127 * 100)
+        direction = "↓" if target < current else "↑" if target > current else "✓"
+        readout = f"{student_percentage}% {direction} {target_percentage}%"
+    return (
+        f'<div class="coach-knob-control {"involved" if involved else ""}">'
+        f'{_render_control_arrow(current, target)}'
+        '<div class="coach-knob-face">'
+        f'{ghost}<div class="coach-knob-student" style="transform:rotate({_knob_angle(current_for_angle):.1f}deg)"><span></span></div>'
+        f'</div><div class="coach-knob-label">{escape(label)}</div>'
+        f'<div class="coach-knob-readout">{escape(readout)}</div></div>'
+    )
+
+
+def _render_coach_fader(
+    deck: dict[str, Any], action: dict[str, Any] | None
+) -> str:
+    current = _control_midi(deck, "volume")
+    target = _control_target(action)
+    current_percentage = (current if current is not None else 0) / 127 * 100
+    target_line = (
+        f'<div class="coach-fader-target" style="bottom:{target / 127 * 100:.1f}%"></div>'
+        if target is not None
+        else ""
+    )
+    value = "---" if current is None else f"{round(current_percentage)}%"
+    return (
+        f'<div class="coach-fader-wrap {"involved" if action else ""}">'
+        f'{_render_control_arrow(current, target)}'
+        '<div class="coach-fader"><div class="coach-fader-rail"></div>'
+        f'{target_line}<div class="coach-fader-handle" style="bottom:{current_percentage:.1f}%;transform:translateY(50%)"></div>'
+        f'</div><div class="coach-knob-label">VOLUME</div>'
+        f'<div class="coach-knob-readout">{value}</div></div>'
+    )
+
+
+def _render_coach_button(
+    deck: dict[str, Any],
+    control: str,
+    label: str,
+    action: dict[str, Any] | None,
+) -> str:
+    active, received = _boolean_state(deck, control)
+    classes = ["coach-mixer-button"]
+    if active and received:
+        classes.append("on")
+    if action:
+        classes.append("involved")
+    state = "ON" if active and received else "OFF" if received else "---"
+    button_guide = ""
+    if action and received:
+        target_active = bool(action.get("target_active"))
+        button_guide = (
+            '<div class="control-move-arrow ready"><span>✓</span><small>LISTO</small></div>'
+            if active == target_active
+            else '<div class="control-move-arrow tap"><span>●</span><small>PULSÁ</small></div>'
+        )
+    return (
+        f'<div class="{" ".join(classes)}">{button_guide}<span class="button-led"></span>'
+        f'{escape(label)}<div class="coach-knob-readout">{state}</div></div>'
+    )
+
+
+def _render_visual_deck(
+    mixer_state: dict[str, Any],
+    section: str,
+    actions: dict[tuple[str, str], dict[str, Any]],
+) -> str:
+    deck = mixer_state.get(section, {})
+    css_class = "deck-a" if section == "deck_a" else "deck-b"
+    title = "DECK A" if section == "deck_a" else "DECK B"
+    knobs = "".join(
+        _render_coach_knob(
+            deck, section, control, label, actions.get((section, control))
+        )
+        for control, label in (
+            ("gain", "GAIN"),
+            ("high", "HI"),
+            ("mid", "MID"),
+            ("low", "LOW"),
+            ("fx_adjust", "FX"),
+        )
+    )
+    fader = _render_coach_fader(deck, actions.get((section, "volume")))
+    buttons = "".join(
+        _render_coach_button(
+            deck, control, label, actions.get((section, control))
+        )
+        for control, label in (
+            ("play", "PLAY"),
+            ("cue", "CUE"),
+            ("sync", "SYNC"),
+            ("loop_active", "LOOP"),
+            ("fx_on", "FX ON"),
+        )
+    )
+    return (
+        f'<section class="visual-deck {css_class}"><div class="visual-deck-title">'
+        f'<span>{title}</span><span>ALUMNO / GHOST</span></div>'
+        f'<div class="visual-knobs">{knobs}</div><div class="visual-deck-lower">'
+        f'{fader}<div class="coach-button-grid">{buttons}</div></div></section>'
+    )
+
+
+def _render_coach_crossfader(
+    mixer_state: dict[str, Any], action: dict[str, Any] | None
+) -> str:
+    crossfader = mixer_state.get("crossfader", {})
+    current = crossfader.get("midi") if crossfader.get("received") else None
+    current_percentage = (int(current) if current is not None else 63) / 127 * 100
+    target = _control_target(action)
+    target_line = (
+        f'<div class="coach-cross-target" style="left:{target / 127 * 100:.1f}%"></div>'
+        if target is not None
+        else ""
+    )
+    movement_arrow = _render_control_arrow(
+        int(current) if current is not None else None, target
+    )
+    return (
+        '<section class="visual-center"><div class="visual-center-label">CROSSFADER</div>'
+        f'<div class="coach-crossfader {"involved" if action else ""}">'
+        f'{movement_arrow}<div class="coach-cross-rail"></div>{target_line}'
+        f'<div class="coach-cross-handle" style="left:{current_percentage:.1f}%;transform:translateX(-50%)"></div>'
+        '</div><div class="coach-cross-labels"><span>A</span><span>B</span></div></section>'
+    )
+
+
+def render_visual_mixer(
+    mixer_state: dict[str, Any] | None,
+    moment: dict[str, Any] | None,
+) -> str:
+    state = mixer_state or {}
+    actions = _actions_by_control(moment)
+    return (
+        '<div class="visual-mixer">'
+        f'{_render_visual_deck(state, "deck_a", actions)}'
+        f'{_render_coach_crossfader(state, actions.get(("mixer", "crossfader")))}'
+        f'{_render_visual_deck(state, "deck_b", actions)}'
+        '</div><div class="mixer-legend">'
+        '<span><i class="student"></i>posición real</span>'
+        '<span><i class="teacher"></i>ghost profesor</span></div>'
+    )
+
+
+def _action_live_detail(
+    action: dict[str, Any], mixer_state: dict[str, Any] | None
+) -> str:
+    section = str(action.get("section", ""))
+    control = str(action.get("control", ""))
+    state = mixer_state or {}
+    if section == "mixer" and control == "crossfader":
+        value = state.get("crossfader", {})
+        current = value.get("midi") if value.get("received") else None
+    else:
+        deck = state.get(section, {})
+        if control in {"play", "transport_cue", "cue", "sync", "loop_active", "fx_on"}:
+            received = bool(deck.get(f"{control}_received"))
+            current_active = bool(deck.get(control)) if received else None
+            target_active = bool(action.get("target_active"))
+            if current_active is None:
+                return "Estado actual sin recibir · tocá el control"
+            return (
+                f'Actual {"ON" if current_active else "OFF"} → '
+                f'Objetivo {"ON" if target_active else "OFF"}'
+            )
+        value = deck.get(control, {})
+        current = value.get("midi") if value.get("received") else None
+    target = action.get("target_value")
+    if current is None:
+        return "Posición actual sin recibir · mové el control"
+    current_percentage = round(int(current) / 127 * 100)
+    if target is None:
+        return f"Posición actual {current_percentage}%"
+    target_percentage = round(int(target) / 127 * 100)
+    direction = "BAJÁ ↓" if int(target) < int(current) else "SUBÍ ↑" if int(target) > int(current) else "LISTO ✓"
+    return f"Actual {current_percentage}% → objetivo {target_percentage}% · {direction}"
+
+
+def _render_focus_actions(
+    actions: list[dict[str, Any]], mixer_state: dict[str, Any] | None
+) -> str:
+    if not actions:
+        return ""
+    rendered = "".join(
+        f'<div class="coach-focus-action {escape(str(action.get("section", ""))).replace("_", "-")} {_action_state(action)}">'
+        f'<div class="coach-focus-icon">{_action_icon(action)}</div>'
+        '<div class="coach-focus-copy">'
+        f'<small>{escape(section_label(str(action.get("section", ""))).upper())}</small>'
+        f'<strong>{escape(str(action.get("instruction", "")))}</strong>'
+        f'<em>{escape(_action_live_detail(action, mixer_state))}</em>'
+        '</div></div>'
+        for action in actions
+    )
+    return f'<div class="coach-focus-grid">{rendered}</div>'
+
+
+def render_coach_now(
+    moment: dict[str, Any] | None,
+    state: str,
+    seconds_until: float | int | None = None,
+    bpm: float | None = None,
+    mixer_state: dict[str, Any] | None = None,
+) -> str:
+    if state == "idle":
+        intent, objective = "LISTO PARA EMPEZAR", "Iniciá el intento cuando estés frente a Traktor."
+        actions = []
+    elif state == "waiting_for_play":
+        intent, objective = "SINCRONIZÁ LA GUÍA", "Este PLAY marca el inicio del reloj de la lección."
+        actions = [
+            {"section": "deck_a", "control": "play", "instruction": "Pulsá PLAY en Deck A"}
+        ]
+    elif state == "guidance_complete":
+        return (
+            '<section class="coach-now"><div class="coach-eyebrow">COMPLETADO</div>'
+            '<h2>SECUENCIA TERMINADA</h2><p class="coach-objective">'
+            'Ya recorriste todas las acciones. Detené el intento para ver el resultado.</p>'
+            '<div class="feedback-item success"><span>✓</span><strong>Lección completada</strong></div></section>'
+        )
+    else:
+        intent, objective = _moment_intent(moment)
+        actions = list((moment or {}).get("actions", []))
+    shown_moment = {"actions": actions}
+    focus_actions = _render_focus_actions(actions, mixer_state)
+    wait = _musical_wait(seconds_until, bpm)
+    wait_html = f'<div class="coach-time-pill">{escape(wait)}</div>' if wait else ""
+    return (
+        '<section class="coach-now"><div class="coach-brief">'
+        '<div class="coach-eyebrow">AHORA</div>'
+        f'<h2>{escape(intent)}</h2><p class="coach-objective">{escape(objective)}</p>{wait_html}'
+        f'{focus_actions}</div>'
+        f'<div class="coach-stage">{render_visual_mixer(mixer_state, shown_moment)}</div>'
+        '</section>'
+    )
+
+
+def render_coach_next(
+    moment: dict[str, Any] | None,
+    seconds_until: float | int | None,
+    bpm: float | None,
+) -> str:
+    if not moment:
+        return (
+            '<section class="coach-side-card"><div class="coach-side-title">DESPUÉS</div>'
+            '<div class="coach-empty-note">No hay otra acción pendiente.</div></section>'
+        )
+    intent, _objective = _moment_intent(moment)
+    actions = "".join(
+        f'<div class="coach-next-action"><span>{_action_icon(action)}</span>'
+        f'<span>{escape(str(action["instruction"]))}</span></div>'
+        for action in moment.get("actions", [])
+    )
+    return (
+        '<section class="coach-side-card"><div class="coach-side-title">DESPUÉS</div>'
+        f'<div class="coach-next-time">{escape(_musical_wait(seconds_until, bpm))}</div>'
+        f'<div class="coach-next-intent">{escape(intent)}</div>{actions}</section>'
+    )
+
+
+def render_coach_feedback(status: dict[str, Any]) -> str:
+    feedback = list(status.get("feedback", []))
+    if status.get("state") == "waiting_for_play":
+        feedback = [{"state": "pending", "verdict": "READY", "message": "Esperando PLAY de Deck A"}]
+    elif status.get("state") == "idle":
+        feedback = [{"state": "pending", "verdict": "READY", "message": "Esperando que inicies el intento"}]
+    if not feedback and status.get("current"):
+        pending = [
+            action
+            for action in status["current"].get("actions", [])
+            if not action.get("outcome")
+        ]
+        feedback = [
+            {"state": "pending", "verdict": "NOW", "message": action["instruction"]}
+            for action in pending[:3]
+        ]
+    if not feedback:
+        feedback = [{"state": "pending", "verdict": "READY", "message": "Esperando el comienzo de la práctica"}]
+    icons = {"success": "✓", "warning": "⚠", "problem": "!", "pending": "○"}
+    items = "".join(
+        f'<div class="feedback-item {escape(str(item["state"]))}"><span>'
+        f'{icons.get(item["state"], "○")}</span><span class="feedback-copy">'
+        f'<strong class="feedback-verdict">{escape(str(item.get("verdict", "NOW")))}</strong>'
+        f'<span class="feedback-detail">{escape(str(item["message"]))}'
+        f'{f" · {abs(float(item["delta_beats"])):g} beats" if item.get("delta_beats") is not None else ""}'
+        '</span></span></div>'
+        for item in feedback[:4]
+    )
+    combo = int(status.get("combo", 0))
+    combo_html = (
+        f'<div class="feedback-combo">🔥 x{combo} COMBO</div>' if combo >= 2 else ""
+    )
+    return (
+        '<section class="coach-side-card"><div class="coach-side-title">FEEDBACK</div>'
+        f'<div class="feedback-list">{items}</div>{combo_html}</section>'
     )
 
 
@@ -289,6 +919,143 @@ def product_shell(title: str, subtitle: str) -> None:
     with ui.element("header").classes("product-header"):
         ui.label("DJ COACH · LECCIONES GRABADAS").classes("product-kicker")
         ui.html(f"<h1>{title}</h1><p>{subtitle}</p>", sanitize=True)
+
+
+def create_lesson_plan_rehearsal(
+    runtime: Any, lesson_steps: list[dict[str, Any]]
+) -> Callable[[], None]:
+    """Crea el ensayo MIDI secuencial y devuelve la acciÃ³n para abrirlo."""
+    lesson_moments = build_guidance_moments(lesson_steps)
+    state: dict[str, Any] = {
+        "checkpoint": None,
+        "processed": 0,
+        "completed": set(),
+        "listening": False,
+    }
+
+    def sync_marks() -> None:
+        completed_ids = sorted(state["completed"])
+        current_index = next(
+            (
+                index
+                for index, moment in enumerate(lesson_moments)
+                if not all(
+                    str(action.get("id", "")) in state["completed"]
+                    for action in moment["actions"]
+                )
+            ),
+            len(lesson_moments),
+        )
+        completed_json = json.dumps(completed_ids)
+        ui.run_javascript(
+            f"""(() => {{
+                const dialog = document.querySelector('.lesson-plan-dialog');
+                if (!dialog) return;
+                const completed = new Set({completed_json});
+                const currentIndex = {current_index};
+                dialog.querySelectorAll('.lesson-plan-moment').forEach(moment => {{
+                    const index = Number(moment.dataset.momentIndex);
+                    moment.classList.toggle('completed', index < currentIndex);
+                    moment.classList.toggle('current', index === currentIndex);
+                    moment.classList.toggle('locked', index > currentIndex);
+                }});
+                dialog.querySelectorAll('.lesson-plan-row').forEach(row => {{
+                    const done = completed.has(row.dataset.stepId);
+                    const moment = row.closest('.lesson-plan-moment');
+                    const current = Number(moment.dataset.momentIndex) === currentIndex;
+                    row.classList.toggle('completed', done);
+                    row.classList.toggle('current', !done && current);
+                    row.classList.toggle('locked', !done && !current);
+                    const order = row.querySelector('.lesson-plan-order');
+                    if (order) order.textContent = done ? 'âœ“' : row.dataset.order;
+                }});
+                const count = dialog.querySelector('.lesson-plan-count');
+                if (count) count.textContent = `${{completed.size}} / {len(lesson_steps)}`;
+            }})();"""
+        )
+
+    def refresh() -> None:
+        if not state["listening"] or state["checkpoint"] is None:
+            return
+        capture = runtime.peek_take_capture(state["checkpoint"])
+        events = capture["events"]
+        new_events = events[state["processed"] :]
+        changed = False
+        for event in new_events:
+            current_moment = next(
+                (
+                    moment
+                    for moment in lesson_moments
+                    if not all(
+                        str(action.get("id", "")) in state["completed"]
+                        for action in moment["actions"]
+                    )
+                ),
+                None,
+            )
+            if current_moment is None:
+                break
+            matched = next(
+                (
+                    step
+                    for step in current_moment["actions"]
+                    if str(step.get("id", "")) not in state["completed"]
+                    and event_matches_step(event, step)
+                ),
+                None,
+            )
+            if matched is not None:
+                state["completed"].add(str(matched.get("id", "")))
+                changed = True
+        state["processed"] = len(events)
+        if changed:
+            sync_marks()
+
+    def stop_listener() -> None:
+        state["listening"] = False
+        state["checkpoint"] = None
+
+    def close() -> None:
+        stop_listener()
+        dialog.close()
+
+    def reset() -> None:
+        state["completed"].clear()
+        state["checkpoint"] = runtime.begin_take_capture()
+        state["processed"] = 0
+        view.set_content(render_lesson_plan(lesson_steps))
+        ui.run_javascript(
+            "requestAnimationFrame(()=>{const list=document.querySelector("
+            "'.lesson-plan-dialog .lesson-plan-list');if(list)list.scrollTop=0;});"
+        )
+
+    def open_dialog() -> None:
+        state["checkpoint"] = runtime.begin_take_capture()
+        state["processed"] = 0
+        state["listening"] = True
+        view.set_content(render_lesson_plan(lesson_steps, state["completed"]))
+        dialog.open()
+
+    with ui.dialog() as dialog:
+        with ui.card().classes("lesson-plan-dialog"):
+            ui.button("âœ•", on_click=close).props(
+                "flat round dense aria-label=Cerrar"
+            ).classes("lesson-plan-close")
+            view = ui.html(
+                render_lesson_plan(lesson_steps), sanitize=False
+            ).classes("w-full")
+            with ui.element("div").classes("lesson-plan-footer"):
+                ui.label("â— ESCUCHANDO MIDI Â· SIN LÃMITE DE TIEMPO").classes(
+                    "lesson-plan-live"
+                )
+                with ui.element("div").classes("lesson-plan-footer-actions"):
+                    ui.button("REINICIAR MARCAS", on_click=reset).props(
+                        "flat color=blue"
+                    )
+                    ui.button("CERRAR", on_click=close).props("flat color=pink")
+    dialog.on("hide", lambda _event: stop_listener())
+    ui.timer(0.1, refresh)
+    return open_dialog
 
 
 def register_product_pages(runtime: Any) -> None:
@@ -757,7 +1524,7 @@ def register_product_pages(runtime: Any) -> None:
 
     @ui.page("/practice/{lesson_id}/prepare")
     def practice_prepare_page(lesson_id: str) -> None:
-        with ui.column().classes("product-page"):
+        with ui.column().classes("product-page prepare-product-page"):
             try:
                 lesson = repository.get(lesson_id)
                 if lesson.status != "ready_for_practice" or not lesson.reference_take_id:
@@ -777,7 +1544,7 @@ def register_product_pages(runtime: Any) -> None:
             ui.button(
                 "← LECCIONES", on_click=lambda: ui.navigate.to("/practice")
             ).props("flat")
-            with ui.element("section").classes("lesson-summary"):
+            with ui.element("section").classes("lesson-summary prepare-shell"):
                 ui.label("PRÁCTICA GUIADA · PREPARAR").classes("stage-chip")
                 with ui.element("div").classes("prep-grid"):
                     with ui.element("article").classes("track-check-card"):
@@ -797,7 +1564,9 @@ def register_product_pages(runtime: Any) -> None:
                     deck_a_line = ui.label().classes("readiness-line")
                     deck_b_line = ui.label().classes("readiness-line")
                     names_line = ui.label().classes("readiness-line")
-                ui.html("<h2>Igualá el estado inicial del profesor</h2>")
+                ui.html("<h2>Igualá el estado inicial del profesor</h2>").classes(
+                    "prepare-title"
+                )
                 calibration_summary = ui.label().classes("calibration-summary")
                 reference_comparison = compare_initial_state(
                     reference_take.initial_state,
@@ -806,13 +1575,25 @@ def register_product_pages(runtime: Any) -> None:
                 calibration_dashboard = ui.html(
                     render_mixer_calibration(reference_comparison),
                     sanitize=False,
-                ).classes("w-full")
+                ).classes("w-full prepare-calibration-view")
+                lesson_steps = build_guidance_steps(reference_take.features)
+                open_lesson_plan = create_lesson_plan_rehearsal(
+                    runtime, lesson_steps
+                )
+                ui.label(
+                    "Pod\u00e9s ensayar primero todo el plan. Al terminar, volv\u00e9 a "
+                    "igualar este mixer con el estado inicial del profesor."
+                ).classes("coach-empty-note prepare-note")
+                ui.button(
+                    f"ENSAYAR PLAN \u00b7 {len(lesson_steps)} ACCIONES",
+                    on_click=open_lesson_plan,
+                ).props("outline color=blue").classes("prepare-plan-button")
                 continue_button = ui.button(
                     "COMENZAR PRÁCTICA GUIADA",
                     on_click=lambda: ui.navigate.to(
                         f"/practice/{lesson.id}/guided"
                     ),
-                ).props("unelevated color=pink")
+                ).props("unelevated color=pink").classes("prepare-start-button")
 
                 def refresh_student_preparation() -> None:
                     snapshot = runtime.snapshot()
@@ -865,57 +1646,206 @@ def register_product_pages(runtime: Any) -> None:
 
     @ui.page("/practice/{lesson_id}/guided")
     def guided_practice_page(lesson_id: str) -> None:
-        with ui.column().classes("product-page"):
+        ui.add_css(PRODUCT_CSS)
+        with ui.column().classes("product-page guided-product-page"):
             try:
                 lesson = repository.get(lesson_id)
                 if lesson.status != "ready_for_practice":
                     raise FileNotFoundError
+                reference_take = take_repository.get(str(lesson.reference_take_id))
+                lesson_steps = build_guidance_steps(reference_take.features)
+                lesson_moments = build_guidance_moments(lesson_steps)
             except FileNotFoundError:
                 product_shell("Práctica no disponible", "La lección no está aprobada.")
                 return
-            product_shell(
-                lesson.name,
-                "La app mostrará solamente la acción actual y la siguiente.",
-            )
-            ui.button(
-                "← VOLVER A PREPARAR",
-                on_click=lambda: ui.navigate.to(
-                    f"/practice/{lesson.id}/prepare"
-                ),
-            ).props("flat")
-            with ui.element("section").classes("lesson-summary"):
-                ui.label("PRÁCTICA GUIADA · INTENTO DEL ALUMNO").classes(
-                    "stage-chip"
+            with ui.element("div").classes("guided-topnav"):
+                ui.button(
+                    "← VOLVER A PREPARAR",
+                    on_click=lambda: ui.navigate.to(
+                        f"/practice/{lesson.id}/prepare"
+                    ),
+                ).props("flat dense")
+                ui.label("DJ COACH · PRÁCTICA").classes("guided-brand")
+
+            plan_state: dict[str, Any] = {
+                "checkpoint": None,
+                "processed": 0,
+                "completed": set(),
+                "listening": False,
+            }
+
+            def sync_lesson_plan_marks() -> None:
+                completed_ids = sorted(plan_state["completed"])
+                current_index = next(
+                    (
+                        index
+                        for index, moment in enumerate(lesson_moments)
+                        if not all(
+                            str(action.get("id", ""))
+                            in plan_state["completed"]
+                            for action in moment["actions"]
+                        )
+                    ),
+                    len(lesson_moments),
                 )
-                ui.label(
-                    "Presioná Iniciar intento y luego comenzá el Deck A desde Traktor. "
-                    "Ese PLAY sincroniza el reloj de la guía."
-                ).classes("prep-intro")
-                previous_moment = ui.html(
-                    render_guidance_moment(None, "ANTERIOR", "previous"),
-                    sanitize=False,
-                ).classes("w-full")
-                with ui.element("div").classes("guidance-card"):
-                    guidance_state = ui.label("LISTO").classes("guidance-state")
-                    current_time = ui.label().classes("guidance-time")
-                    current_moment = ui.html(
-                        render_guidance_moment(None, "AHORA", "current"),
-                        sanitize=False,
-                    ).classes("w-full")
-                next_moment = ui.html(
-                    render_guidance_moment(None, "PRÓXIMO", "next"),
-                    sanitize=False,
-                ).classes("w-full")
-                practice_progress = ui.label().classes("practice-progress")
-                with ui.element("div").classes("prep-actions"):
-                    start_attempt_button = ui.button("INICIAR INTENTO").props(
-                        "unelevated color=pink"
+                completed_json = json.dumps(completed_ids)
+                ui.run_javascript(
+                    f"""(() => {{
+                        const dialog = document.querySelector('.lesson-plan-dialog');
+                        if (!dialog) return;
+                        const completed = new Set({completed_json});
+                        const currentIndex = {current_index};
+                        dialog.querySelectorAll('.lesson-plan-moment').forEach(moment => {{
+                            const index = Number(moment.dataset.momentIndex);
+                            moment.classList.toggle('completed', index < currentIndex);
+                            moment.classList.toggle('current', index === currentIndex);
+                            moment.classList.toggle('locked', index > currentIndex);
+                        }});
+                        dialog.querySelectorAll('.lesson-plan-row').forEach(row => {{
+                            const done = completed.has(row.dataset.stepId);
+                            const moment = row.closest('.lesson-plan-moment');
+                            const current = Number(moment.dataset.momentIndex) === currentIndex;
+                            row.classList.toggle('completed', done);
+                            row.classList.toggle('current', !done && current);
+                            row.classList.toggle('locked', !done && !current);
+                            const order = row.querySelector('.lesson-plan-order');
+                            if (order) order.textContent = done ? '✓' : row.dataset.order;
+                        }});
+                        const count = dialog.querySelector('.lesson-plan-count');
+                        if (count) count.textContent = `${{completed.size}} / {len(lesson_steps)}`;
+                    }})();"""
+                )
+
+            def refresh_lesson_plan() -> None:
+                if not plan_state["listening"] or plan_state["checkpoint"] is None:
+                    return
+                capture = runtime.peek_take_capture(plan_state["checkpoint"])
+                events = capture["events"]
+                new_events = events[plan_state["processed"] :]
+                changed = False
+                for event in new_events:
+                    current_moment = next(
+                        (
+                            moment
+                            for moment in lesson_moments
+                            if not all(
+                                str(action.get("id", ""))
+                                in plan_state["completed"]
+                                for action in moment["actions"]
+                            )
+                        ),
+                        None,
                     )
-                    stop_attempt_button = ui.button(
-                        "DETENER Y VER RESULTADO"
-                    ).props("unelevated color=positive")
+                    if current_moment is None:
+                        break
+                    matched = next(
+                        (
+                            step
+                            for step in current_moment["actions"]
+                            if str(step.get("id", ""))
+                            not in plan_state["completed"]
+                            and event_matches_step(event, step)
+                        ),
+                        None,
+                    )
+                    if matched is not None:
+                        plan_state["completed"].add(
+                            str(matched.get("id", ""))
+                        )
+                        changed = True
+                plan_state["processed"] = len(events)
+                if changed:
+                    sync_lesson_plan_marks()
+
+            def open_lesson_plan() -> None:
+                plan_state["checkpoint"] = runtime.begin_take_capture()
+                plan_state["processed"] = 0
+                plan_state["listening"] = True
+                lesson_plan_view.set_content(
+                    render_lesson_plan(lesson_steps, plan_state["completed"])
+                )
+                lesson_plan_dialog.open()
+
+            def close_lesson_plan() -> None:
+                plan_state["listening"] = False
+                plan_state["checkpoint"] = None
+                lesson_plan_dialog.close()
+
+            def stop_lesson_plan_listener() -> None:
+                plan_state["listening"] = False
+                plan_state["checkpoint"] = None
+
+            def reset_lesson_plan() -> None:
+                plan_state["completed"].clear()
+                plan_state["checkpoint"] = runtime.begin_take_capture()
+                plan_state["processed"] = 0
+                lesson_plan_view.set_content(render_lesson_plan(lesson_steps))
+                ui.run_javascript(
+                    "requestAnimationFrame(()=>{const list=document.querySelector("
+                    "'.lesson-plan-dialog .lesson-plan-list');if(list)list.scrollTop=0;});"
+                )
+
+            with ui.dialog() as lesson_plan_dialog:
+                with ui.card().classes("lesson-plan-dialog"):
+                    ui.button("✕", on_click=close_lesson_plan).props(
+                        "flat round dense aria-label=Cerrar"
+                    ).classes("lesson-plan-close")
+                    lesson_plan_view = ui.html(
+                        render_lesson_plan(lesson_steps), sanitize=False
+                    ).classes("w-full")
+                    with ui.element("div").classes("lesson-plan-footer"):
+                        ui.label("● ESCUCHANDO MIDI · SIN LÍMITE DE TIEMPO").classes(
+                            "lesson-plan-live"
+                        )
+                        with ui.element("div").classes(
+                            "lesson-plan-footer-actions"
+                        ):
+                            ui.button(
+                                "REINICIAR MARCAS", on_click=reset_lesson_plan
+                            ).props("flat color=blue")
+                            ui.button(
+                                "CERRAR", on_click=close_lesson_plan
+                            ).props("flat color=pink")
+            lesson_plan_dialog.on("hide", lambda _event: stop_lesson_plan_listener())
+
+            idle_status = {"state": "idle"}
+            with ui.element("section").classes("lesson-summary guided-shell"):
+                context_view = ui.html(
+                    render_coach_context(lesson.name, idle_status), sanitize=False
+                ).classes("w-full")
+                timeline_view = ui.html(
+                    render_coach_timeline(idle_status), sanitize=False
+                ).classes("w-full")
+                with ui.element("div").classes("coach-layout"):
+                    now_view = ui.html(
+                        render_coach_now(None, "idle"), sanitize=False
+                    ).classes("w-full")
+                    with ui.element("aside").classes("coach-sidebar"):
+                        next_view = ui.html(
+                            render_coach_next(None, None, None), sanitize=False
+                        ).classes("w-full")
+                        feedback_view = ui.html(
+                            render_coach_feedback(idle_status), sanitize=False
+                        ).classes("w-full")
+                with ui.element("div").classes("guided-controls"):
+                    practice_progress = ui.label(
+                        "Prepará Traktor y comenzá cuando estés listo."
+                    ).classes("practice-progress")
+                    with ui.element("div").classes("guided-actions"):
+                        ui.button(
+                            f"VER PLAN · {len(lesson_steps)} ACCIONES",
+                            on_click=open_lesson_plan,
+                        ).props("outline color=blue").set_visibility(False)
+                        start_attempt_button = ui.button("INICIAR INTENTO").props(
+                            "unelevated color=pink"
+                        )
+                        stop_attempt_button = ui.button(
+                            "DETENER Y VER RESULTADO"
+                        ).props("unelevated color=positive")
 
                 def start_attempt() -> None:
+                    if plan_state["listening"]:
+                        close_lesson_plan()
                     try:
                         guided_practice.start(lesson.id)
                     except (RuntimeError, ValueError) as error:
@@ -946,88 +1876,67 @@ def register_product_pages(runtime: Any) -> None:
                     active = state != "idle"
                     start_attempt_button.set_enabled(not active)
                     stop_attempt_button.set_enabled(active)
+                    context_view.set_content(
+                        render_coach_context(lesson.name, status)
+                    )
+                    timeline_view.set_content(render_coach_timeline(status))
                     if state == "idle":
-                        guidance_state.set_text("LISTO PARA EMPEZAR")
-                        previous_moment.set_content(
-                            render_guidance_moment(None, "ANTERIOR", "previous")
+                        now_view.set_content(render_coach_now(None, state))
+                        next_view.set_content(render_coach_next(None, None, None))
+                        feedback_view.set_content(render_coach_feedback(status))
+                        practice_progress.set_text(
+                            "Prepará Traktor y comenzá cuando estés listo."
                         )
-                        current_time.set_text("")
-                        current_moment.set_content(
-                            render_guidance_moment(None, "AHORA", "current")
-                        )
-                        next_moment.set_content(
-                            render_guidance_moment(None, "PRÓXIMO", "next")
-                        )
-                        practice_progress.set_text("")
                         return
+                    context = status.get("musical_context", {})
+                    bpm = context.get("bpm")
+                    mixer_state = status.get("mixer_state")
                     if state == "waiting_for_play":
-                        guidance_state.set_text("ESPERANDO SINCRONIZACIÓN")
-                        current_time.set_text("La guía comenzará con ese evento")
-                        previous_moment.set_content(
-                            render_guidance_moment(None, "ANTERIOR", "previous")
+                        now_view.set_content(
+                            render_coach_now(None, state, None, bpm, mixer_state)
                         )
-                        play_moment = {
-                            "actions": [
-                                {
-                                    "section": "deck_a",
-                                    "instruction": "Pulsá PLAY en Deck A",
-                                    "outcome": None,
-                                }
-                            ]
-                        }
-                        current_moment.set_content(
-                            render_guidance_moment(play_moment, "AHORA", "current")
-                        )
-                        next_moment.set_content(
-                            render_guidance_moment(None, "PRÓXIMO", "next")
+                        next_view.set_content(
+                            render_coach_next(
+                                status.get("current"),
+                                status.get("seconds_until_current"),
+                                bpm,
+                            )
                         )
                     elif state == "guidance_complete":
-                        guidance_state.set_text("SECUENCIA COMPLETADA")
-                        current_time.set_text("✓ Todas las consignas fueron recorridas")
-                        previous_moment.set_content(
-                            render_guidance_moment(
-                                status.get("previous"), "ANTERIOR", "previous"
-                            )
+                        now_view.set_content(
+                            render_coach_now(None, state, None, bpm, mixer_state)
                         )
-                        current_moment.set_content(
-                            render_guidance_moment(None, "AHORA", "current")
-                        )
-                        next_moment.set_content(
-                            render_guidance_moment(None, "PRÓXIMO", "next")
-                        )
+                        next_view.set_content(render_coach_next(None, None, bpm))
                     else:
                         seconds_until = float(status["seconds_until_current"])
-                        guidance_state.set_text(
-                            "AHORA" if seconds_until <= 0 else "MOMENTO PRÓXIMO"
-                        )
-                        current_time.set_text(
-                            "Ahora"
-                            if seconds_until <= 0
-                            else f"En {seconds_until:.0f} segundos"
-                        )
-                        previous_moment.set_content(
-                            render_guidance_moment(
-                                status.get("previous"), "ANTERIOR", "previous"
+                        now_view.set_content(
+                            render_coach_now(
+                                status.get("current"),
+                                state,
+                                seconds_until,
+                                bpm,
+                                mixer_state,
                             )
                         )
-                        current_moment.set_content(
-                            render_guidance_moment(
-                                status.get("current"), "AHORA", "current"
+                        next_view.set_content(
+                            render_coach_next(
+                                status.get("next"),
+                                status.get("seconds_until_next"),
+                                bpm,
                             )
                         )
-                        next_moment.set_content(
-                            render_guidance_moment(
-                                status.get("next"), "PRÓXIMO", "next"
-                            )
-                        )
+                    feedback_view.set_content(render_coach_feedback(status))
                     practice_progress.set_text(
-                        f'{status["completed_count"]} completadas · '
-                        f'{status["missed_count"]} omitidas · '
-                        f'{status["total_steps"]} consignas'
+                        f'{status["completed_count"]} correctas · '
+                        f'{status["missed_count"]} con problema · '
+                        f'{status["total_steps"]} acciones'
                     )
 
                 refresh_guidance()
-                ui.timer(0.25, refresh_guidance)
+                # 10 FPS mantiene el feedback visual cercano al movimiento MIDI
+                # sin obligar al navegador a redibujar en cada mensaje recibido.
+                ui.timer(0.1, refresh_guidance)
+                ui.timer(0.1, refresh_lesson_plan)
 
     @ui.page("/practice/{lesson_id}/result/{attempt_id}")
     def practice_result_page(lesson_id: str, attempt_id: str) -> None:

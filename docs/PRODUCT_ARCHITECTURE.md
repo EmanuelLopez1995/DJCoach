@@ -104,4 +104,13 @@ manteniendo wrappers compatibles en la raíz.
 5. Comparar ambos en beats con tolerancias.
 6. Mostrar feedback concreto y permitir reintentar.
 
+La práctica guiada presenta los mismos momentos y outcomes del motor mediante
+una capa pedagógica: agrupa movimientos por intención, prioriza la acción actual,
+resume solamente el siguiente momento y mantiene una timeline compacta. Esta
+capa no cambia el orden, las tolerancias ni la detección MIDI de las consignas.
+El mixer pedagógico consume el snapshot vivo del mismo runtime: el indicador del
+alumno representa el MIDI actual y el ghost representa el target almacenado en
+la acción del profesor. La futura trayectoria animada podrá extender este
+componente sin modificar el contrato de evaluación existente.
+
 No se agrega IA, cloud ni análisis avanzado de audio hasta completar este ciclo.

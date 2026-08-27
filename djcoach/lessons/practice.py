@@ -131,16 +131,39 @@ class GuidedPracticeRecorder:
         student_seconds: float | None = None,
         delta_seconds: float | None = None,
     ) -> None:
-        if step["id"] in self._outcome_ids(active):
+        outcome = {
+            "step_id": step["id"],
+            "status": status,
+            "timing": timing,
+            "student_seconds": student_seconds,
+            "delta_seconds": delta_seconds,
+        }
+        for index, existing in enumerate(active.outcomes):
+            if existing["step_id"] != step["id"]:
+                continue
+            # MISSED describe que el alumno no llegó a tiempo, pero no debe
+            # impedir reconocer que finalmente realizó la acción correcta.
+            if existing["status"] == "missed" and status == "completed":
+                active.outcomes[index] = outcome
             return
-        active.outcomes.append(
-            {
-                "step_id": step["id"],
-                "status": status,
-                "timing": timing,
-                "student_seconds": student_seconds,
-                "delta_seconds": delta_seconds,
-            }
+        active.outcomes.append(outcome)
+
+    @staticmethod
+    def _recoverable_missed_step(
+        active: ActiveStudentAttempt, event: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        missed_ids = {
+            str(outcome["step_id"])
+            for outcome in active.outcomes
+            if outcome["status"] == "missed"
+        }
+        return next(
+            (
+                step
+                for step in reversed(active.steps)
+                if step["id"] in missed_ids and event_matches_step(event, step)
+            ),
+            None,
         )
 
     def _mark_missed_until(
@@ -193,6 +216,8 @@ class GuidedPracticeRecorder:
                 ),
                 None,
             )
+            if matched_step is None:
+                matched_step = self._recoverable_missed_step(active, event)
             if matched_step is not None:
                 delta = round(
                     student_seconds - matched_step["reference_seconds"], 3
@@ -263,6 +288,7 @@ class GuidedPracticeRecorder:
             outcomes_by_id = {
                 outcome["step_id"]: outcome for outcome in active.outcomes
             }
+            steps_by_id = {step["id"]: step for step in active.steps}
 
             def present(moment: dict[str, Any] | None) -> dict[str, Any] | None:
                 if moment is None:
@@ -278,12 +304,106 @@ class GuidedPracticeRecorder:
                     ],
                 }
 
+            timeline = []
+            for index, moment in enumerate(active.moments):
+                shown = present(moment)
+                moment_outcomes = [
+                    outcomes_by_id.get(action["id"])
+                    for action in moment["actions"]
+                ]
+                if any(
+                    outcome and outcome["status"] == "missed"
+                    for outcome in moment_outcomes
+                ):
+                    visual_state = "problem"
+                elif all(moment_outcomes):
+                    visual_state = "completed"
+                elif index == active.current_moment_index:
+                    visual_state = "current"
+                else:
+                    visual_state = "pending"
+                timeline.append({**shown, "visual_state": visual_state})
+
+            final_state = refreshed["capture"].get("final_state", {})
+            rhythm = final_state.get("deck_tempos", {}).get("a", {})
+            clock = final_state.get("midi_clock", {})
+            bpm = clock.get("bpm") if clock.get("received") else None
+
+            feedback = []
+            for outcome in reversed(active.outcomes[-4:]):
+                step = steps_by_id[str(outcome["step_id"])]
+                timing = outcome.get("timing")
+                delta_seconds = outcome.get("delta_seconds")
+                delta_beats = (
+                    round(float(delta_seconds) * float(bpm) / 60.0, 1)
+                    if delta_seconds is not None and bpm is not None
+                    else None
+                )
+                if outcome["status"] == "missed":
+                    feedback_state = "problem"
+                    verdict = "MISSED"
+                    message = step["instruction"]
+                elif timing == "early":
+                    feedback_state = "warning"
+                    verdict = "EARLY"
+                    message = step["instruction"]
+                elif timing == "late":
+                    feedback_state = "warning"
+                    verdict = "LATE"
+                    message = step["instruction"]
+                else:
+                    feedback_state = "success"
+                    verdict = (
+                        "PERFECT"
+                        if delta_beats is not None and abs(delta_beats) <= 0.5
+                        else "GOOD"
+                    )
+                    message = step["instruction"]
+                feedback.append(
+                    {
+                        "state": feedback_state,
+                        "verdict": verdict,
+                        "message": message,
+                        "delta_beats": delta_beats,
+                    }
+                )
+
+            combo = 0
+            for outcome in reversed(active.outcomes):
+                if outcome["status"] != "completed" or outcome.get("timing") in {
+                    "early",
+                    "late",
+                }:
+                    break
+                combo += 1
+
             return {
                 "state": state,
                 "take_id": active.take.id,
                 "previous": present(previous),
                 "current": present(current),
                 "next": present(following),
+                "timeline": timeline,
+                "feedback": feedback,
+                "combo": combo,
+                "mixer_state": {
+                    "deck_a": final_state.get("deck_a", {}),
+                    "deck_b": final_state.get("deck_b", {}),
+                    "crossfader": final_state.get("crossfader", {}),
+                },
+                "current_moment_number": min(
+                    active.current_moment_index + 1, len(active.moments)
+                ),
+                "total_moments": len(active.moments),
+                "musical_context": {
+                    "beat": rhythm.get("beat_in_bar")
+                    if rhythm.get("downbeat_set")
+                    else None,
+                    "bar": rhythm.get("bar_count")
+                    if rhythm.get("downbeat_set")
+                    else None,
+                    "bpm": round(float(bpm), 1) if bpm is not None else None,
+                },
                 "student_seconds": refreshed["student_seconds"],
                 "seconds_until_current": (
                     round(
@@ -292,6 +412,15 @@ class GuidedPracticeRecorder:
                         1,
                     )
                     if current
+                    else None
+                ),
+                "seconds_until_next": (
+                    round(
+                        float(following["reference_seconds"])
+                        - refreshed["student_seconds"],
+                        1,
+                    )
+                    if following
                     else None
                 ),
                 "completed_count": sum(

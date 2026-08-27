@@ -11,6 +11,11 @@ from djcoach.web.product_pages import (
     render_guidance_moment,
     render_lesson_plan,
     render_mixer_calibration,
+    render_rhythm_feedback,
+    render_rhythm_header,
+    render_rhythm_lane,
+    render_rhythm_next,
+    render_rhythm_phases,
     render_visual_mixer,
 )
 
@@ -87,6 +92,74 @@ class WebDashboardTests(unittest.TestCase):
 
         advanced = render_lesson_plan(steps, {"step_001", "step_002"})
         self.assertIn("lesson-plan-row mixer current", advanced)
+
+    def test_rhythm_practice_uses_live_moments_and_beat_feedback(self) -> None:
+        current = {
+            "reference_seconds": 8.0,
+            "actions": [
+                {
+                    "section": "deck_b",
+                    "control": "low",
+                    "instruction": "Cerrá LOW de Deck B",
+                }
+            ],
+        }
+        following = {
+            "reference_seconds": 10.0,
+            "actions": [
+                {
+                    "section": "deck_a",
+                    "control": "low",
+                    "instruction": "Cerrá LOW de Deck A",
+                },
+                {
+                    "section": "deck_b",
+                    "control": "low",
+                    "instruction": "Subí LOW de Deck B",
+                },
+            ],
+        }
+        status = {
+            "state": "guiding",
+            "current": current,
+            "next": following,
+            "timeline": [
+                {**current, "visual_state": "current"},
+                {**following, "visual_state": "pending"},
+            ],
+            "student_seconds": 6.0,
+            "seconds_until_next": 4.0,
+            "current_moment_number": 3,
+            "total_moments": 6,
+            "musical_context": {"bpm": 120.0},
+            "feedback": [
+                {
+                    "state": "success",
+                    "verdict": "PERFECT",
+                    "message": "Cerrá LOW de Deck B",
+                    "delta_beats": 0.5,
+                }
+            ],
+            "combo": 2,
+        }
+
+        header = render_rhythm_header("Bass Swap", status)
+        phases = render_rhythm_phases(status)
+        lane = render_rhythm_lane(status)
+        upcoming = render_rhythm_next(status)
+        feedback = render_rhythm_feedback(status)
+
+        self.assertIn("Bass Swap", header)
+        self.assertIn("EQ PREP", header)
+        self.assertIn("rhythm-phase", phases)
+        self.assertIn("rhythm-now", lane)
+        self.assertIn("8 BEATS", lane)
+        self.assertIn("B LOW ↓", lane)
+        self.assertEqual(3, lane.count('class="rhythm-card '))
+        self.assertIn("top:106px", lane)
+        self.assertIn("BASS SWAP", upcoming)
+        self.assertIn("PERFECT", feedback)
+        self.assertIn("x2 COMBO", feedback)
 
     def test_visual_mixer_uses_live_midi_and_teacher_ghost(self) -> None:
         def continuous(midi: int) -> dict:

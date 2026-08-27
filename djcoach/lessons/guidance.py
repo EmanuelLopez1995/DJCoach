@@ -162,6 +162,10 @@ def build_guidance_moments(
             or float(step["reference_seconds"])
             - float(moments[-1]["reference_seconds"])
             > window_seconds
+            # La guía representa movimientos físicos: como máximo dos
+            # controles simultáneos, uno por mano. Un tercer evento cercano
+            # abre el siguiente micro-momento en lugar de quedar oculto.
+            or len(moments[-1]["actions"]) >= 2
         ):
             moments.append(
                 {

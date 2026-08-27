@@ -107,6 +107,8 @@ PRODUCT_CSS = """
 @media(max-width:900px){.coach-context{grid-template-columns:1fr 1fr}.context-cell.lesson{grid-column:1/-1}.coach-sidebar{grid-template-columns:1fr}.visual-mixer{grid-template-columns:1fr;gap:12px}.visual-center{order:3;padding:12px 20px}.visual-knobs{grid-template-columns:repeat(5,1fr)}.coach-now{min-height:0;padding:25px 20px}.coach-focus-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.visual-deck{padding:13px}.visual-knobs{grid-template-columns:repeat(3,1fr)}.coach-knob-control{padding:7px 3px}.coach-knob-face{width:58px;height:58px}.coach-knob-student span{height:21px}.visual-deck-lower{grid-template-columns:78px 1fr}.coach-fader{height:125px}.coach-button-grid{gap:7px}.coach-mixer-button{min-height:50px;font-size:10px}}
 @media(max-width:520px){.coach-context{grid-template-columns:1fr 1fr}.context-cell{min-width:0;min-height:58px;padding:8px 10px}.context-cell strong{font-size:14px}.coach-now{padding:22px 14px}.guided-shell{padding:11px}.coach-layout{gap:12px}.visual-mixer{padding:10px;margin-left:-4px;margin-right:-4px}.coach-focus-action{grid-template-columns:48px 1fr;padding:12px}.coach-focus-icon{width:44px;height:44px}.coach-focus-copy strong{font-size:17px}}
+.rhythm-shell{display:grid!important;grid-template-rows:auto auto minmax(230px,1fr) auto auto!important;gap:10px!important;min-height:0!important;height:auto!important;max-height:none!important;padding:14px!important;overflow:visible!important;background:radial-gradient(circle at 50% 100%,#df31cc18,transparent 34%),linear-gradient(155deg,#0c1420,#080d15)!important}.rhythm-header{display:grid;grid-template-columns:minmax(200px,1.7fr) repeat(3,minmax(92px,.7fr)) auto;gap:10px;align-items:center;padding:10px 14px;border:1px solid #293647;border-radius:13px;background:#0a1018}.rhythm-meta{display:grid;gap:3px;min-width:0}.rhythm-meta span{color:#8494a8;font-size:9px;font-weight:900;letter-spacing:.12em}.rhythm-meta strong{overflow:hidden;color:#f5f8fc;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.rhythm-meta.phase strong{color:#ff75df}.rhythm-exit{justify-self:end;color:#d88cff;font-size:11px;font-weight:800}.rhythm-phases{display:grid;grid-template-columns:repeat(6,1fr);gap:0;padding:0 18px}.rhythm-phase{position:relative;display:grid;justify-items:center;gap:4px;color:#718095;font-size:10px;font-weight:800;text-align:center}.rhythm-phase:not(:last-child)::after{position:absolute;top:12px;left:calc(50% + 16px);right:calc(-50% + 16px);height:2px;background:#344152;content:""}.rhythm-phase-dot{z-index:1;display:grid;place-items:center;width:24px;height:24px;border:1px solid #536176;border-radius:50%;background:#101722;font-size:11px}.rhythm-phase.completed{color:#67eaa8}.rhythm-phase.completed .rhythm-phase-dot{border-color:#57d999;background:#123526}.rhythm-phase.completed:not(:last-child)::after{background:#57d999}.rhythm-phase.current{color:#ff8ae5}.rhythm-phase.current .rhythm-phase-dot{border-color:#ff4fd8;background:#46163f;box-shadow:0 0 18px #ff4fd899}.rhythm-stage{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:10px;min-height:0}.rhythm-lane{position:relative;min-height:230px;overflow:hidden;border:1px solid #2a384a;border-radius:14px;background:linear-gradient(180deg,#0b121c,#090d14)}.rhythm-lane::before{position:absolute;inset:50% 0 auto;height:1px;background:#334052;content:""}.rhythm-now{position:absolute;z-index:3;top:0;bottom:34px;left:62%;width:2px;background:#ff75df;box-shadow:0 0 14px #ff4fd8}.rhythm-now::before,.rhythm-now::after{position:absolute;left:50%;transform:translateX(-50%);color:#ff83e4;font-size:10px;font-weight:950;letter-spacing:.12em}.rhythm-now::before{top:-4px;content:"AHORA";transform:translate(-50%,-100%)}.rhythm-now::after{bottom:-22px;content:"AHORA"}.rhythm-now i{position:absolute;top:47%;left:-5px;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 16px #fff}.rhythm-card{position:absolute;z-index:2;top:29px;display:grid;gap:5px;min-width:92px;max-width:148px;padding:9px 11px;border:1px solid #375069;border-radius:8px;background:#121c28;box-shadow:0 8px 18px #0008;transform:translateX(-50%);transition:left .12s linear}.rhythm-card.current{border-color:#ff4fd8;background:#30152f;box-shadow:0 0 20px #ff4fd855}.rhythm-card.completed{opacity:.45}.rhythm-card.problem{border-color:#ffbd59}.rhythm-card-title{color:#f1f5f9;font-size:11px;font-weight:900;white-space:nowrap}.rhythm-card-actions{display:flex;flex-wrap:wrap;gap:4px}.rhythm-action{color:#a8b7c8;font-size:9px;font-weight:800;white-space:nowrap}.rhythm-card.current .rhythm-action{color:#ffc5f5}.rhythm-scale{position:absolute;right:7%;bottom:9px;left:7%;display:flex;justify-content:space-between;color:#8492a5;font-family:monospace;font-size:10px;font-weight:800}.rhythm-scale strong{color:#ff75df}.rhythm-wait{position:absolute;inset:0;display:grid;place-items:center;color:#acb9c9;font-size:15px;font-weight:800}.rhythm-next{padding:16px;border:1px solid #2b394b;border-radius:14px;background:#0b121c}.rhythm-next small{display:block;margin-bottom:8px;color:#93a3b8;font-size:9px;font-weight:900;letter-spacing:.13em}.rhythm-next-time{margin-bottom:6px;color:#ffbd59;font-size:12px;font-weight:900}.rhythm-next h3{margin:0 0 10px;color:#fff;font-size:17px}.rhythm-next-action{display:block;padding:5px 0;border-top:1px solid #1f2b39;color:#b9c7d6;font-size:11px;font-weight:800}.rhythm-feedback{display:flex;align-items:center;gap:14px;min-height:55px;padding:10px 16px;border:1px solid #293647;border-radius:13px;background:#0b121c}.rhythm-verdict{min-width:120px;color:#8ea0b4;font-size:22px;font-style:italic;font-weight:950;letter-spacing:.05em}.rhythm-verdict.success{color:#69eaa8}.rhythm-verdict.warning{color:#ffbd59}.rhythm-verdict.problem{color:#ff7670}.rhythm-feedback-detail{color:#aebdce;font-size:12px;font-weight:700}.rhythm-combo{margin-left:auto;color:#ff75df;font-size:14px;font-weight:950}.rhythm-controls{display:flex;justify-content:space-between;align-items:center;gap:12px}.rhythm-controls .practice-progress{font-size:11px}@media(max-width:900px){.rhythm-header{grid-template-columns:1fr 1fr}.rhythm-stage{grid-template-columns:1fr}.rhythm-next{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:center}.rhythm-next small,.rhythm-next-time,.rhythm-next h3{margin:0}.rhythm-phases{padding:0}.rhythm-phase{font-size:8px}.rhythm-card{max-width:118px}.rhythm-feedback{flex-wrap:wrap}}@media(max-width:620px){.rhythm-phases{grid-template-columns:repeat(3,1fr);gap:8px}.rhythm-phase:not(:last-child)::after{display:none}.rhythm-lane{min-height:250px}.rhythm-stage{gap:8px}.rhythm-next{grid-template-columns:1fr}.rhythm-card{min-width:76px;padding:7px}.rhythm-header{padding:10px}.rhythm-now{left:66%}}
+.rhythm-card{min-width:64px;max-width:126px;padding:8px 10px}.rhythm-card.far{opacity:.42}.rhythm-card.status-completed{opacity:.3}.rhythm-card.status-problem{border-color:#ff7670}.rhythm-card.prepare{border-color:#ffbd59;background:#2b2211;box-shadow:0 0 16px #ffbd593d}.rhythm-card.now{border-color:#ff4fd8;background:#381333;box-shadow:0 0 22px #ff4fd877;transition:none}.rhythm-card.deck-a{border-left:3px solid #36d7ff}.rhythm-card.deck-b{border-left:3px solid #ff4fd8}.rhythm-card.mixer{border-left:3px solid #ffb648}.rhythm-card-actions{justify-content:center}.rhythm-action{color:#edf3fa;font-size:11px;letter-spacing:.03em}.rhythm-card.deck-a .rhythm-action{color:#76e8ff}.rhythm-card.deck-b .rhythm-action{color:#ff9eea}.rhythm-card.mixer .rhythm-action{color:#ffd27b}.rhythm-technique{color:#fff;font-size:9px;font-weight:950;letter-spacing:.12em;text-align:center}.rhythm-lane{min-height:330px}.rhythm-now-focus{position:absolute;z-index:4;top:196px;left:62%;display:grid;justify-items:center;gap:2px;min-width:170px;padding:8px 12px;border:1px solid #ffbd59;border-radius:9px;background:#17150fdd;transform:translateX(-50%);text-align:center}.rhythm-now-focus span{color:#ffbd59;font-size:9px;font-weight:950;letter-spacing:.14em}.rhythm-now-focus strong{color:#fff;font-size:18px;line-height:1.1}.rhythm-now-focus em{color:#f7ca78;font-size:10px;font-style:normal;font-weight:800}.rhythm-now-focus.now{border-color:#ff4fd8;background:#33102fe8;box-shadow:0 0 25px #ff4fd877}.rhythm-now-focus.now span,.rhythm-now-focus.now em{color:#ff9bea}.rhythm-now-focus.now strong{font-size:21px}.rhythm-next h3{color:#fff;font-size:20px}.rhythm-next-action{color:#ffb5ec;font-size:13px}@media(max-width:620px){.rhythm-lane{min-height:350px}.rhythm-now-focus{top:205px;left:66%;min-width:130px}.rhythm-now-focus strong{font-size:14px}}
 """
 
 
@@ -768,6 +770,221 @@ def render_coach_feedback(status: dict[str, Any]) -> str:
     return (
         '<section class="coach-side-card"><div class="coach-side-title">FEEDBACK</div>'
         f'<div class="feedback-list">{items}</div>{combo_html}</section>'
+    )
+
+
+def _rhythm_action_label(action: dict[str, Any]) -> str:
+    """Etiqueta breve: el alumno mira Traktor, no un segundo mixer."""
+    control = str(action.get("control", ""))
+    section = str(action.get("section", ""))
+    deck = {"deck_a": "A", "deck_b": "B"}.get(section, "")
+    label = {
+        "low": "LOW",
+        "mid": "MID",
+        "high": "HIGH",
+        "gain": "GAIN",
+        "fx_adjust": "FX",
+        "volume": "FADER",
+        "crossfader": "CROSSFADER",
+        "loop_active": "LOOP",
+        "loop_size": "LOOP",
+        "fx_on": "FX ON",
+        "play": "PLAY",
+        "sync": "SYNC",
+        "cue": "CUE",
+    }.get(control, CONTROL_LABELS.get(control, control.upper()))
+    instruction = str(action.get("instruction", ""))
+    if control in {"low", "mid", "high", "gain", "fx_adjust", "volume"}:
+        direction = "↓" if instruction.startswith(("Bajá", "Cerrá")) else "↑"
+        return f"{deck} {label} {direction}".strip()
+    if control == "crossfader":
+        return "X-FADER → B" if "Deck B" in instruction else "X-FADER → A"
+    if control == "play":
+        return f"{deck} ▶".strip()
+    if control == "loop_active":
+        return f"{deck} ↻ {'●' if action.get('target_active') else '○'}".strip()
+    if control in {"cue", "fx_on", "sync", "transport_cue"}:
+        short = {"fx_on": "FX", "transport_cue": "CUE"}.get(control, label)
+        return f"{deck} {short} {'●' if action.get('target_active') else '○'}".strip()
+    return f"{deck} {label}".strip()
+
+
+def _rhythm_action_target(action: dict[str, Any]) -> str:
+    value = action.get("target_value")
+    if value is None:
+        return ""
+    return f"Objetivo {round(int(value) / 127 * 100)}%"
+
+
+def _rhythm_card_color(moment: dict[str, Any]) -> str:
+    sections = {str(action.get("section", "")) for action in moment.get("actions", [])}
+    if sections == {"deck_a"}:
+        return "deck-a"
+    if sections == {"deck_b"}:
+        return "deck-b"
+    return "mixer"
+
+
+def _rhythm_phase_index(status: dict[str, Any]) -> int:
+    if status.get("state") in {"idle", "waiting_for_play"}:
+        return 0
+    intent, _ = _moment_intent(status.get("current"))
+    if intent == "BASS SWAP":
+        return 4
+    if intent.startswith("PREPARÁ") or intent.startswith("LOOP"):
+        return 1
+    if "EQ" in intent or intent == "EFECTO":
+        return 2
+    if intent == "MEZCLA":
+        return 3
+    if status.get("state") == "guidance_complete":
+        return 5
+    total = max(1, int(status.get("total_moments", 1)))
+    progress = int(status.get("current_moment_number", 1)) / total
+    return min(5, max(1, round(progress * 4)))
+
+
+def render_rhythm_header(lesson_name: str, status: dict[str, Any]) -> str:
+    context = status.get("musical_context", {})
+    bpm = context.get("bpm")
+    phase_names = ("PREPARACIÓN", "ENTRADA B", "EQ PREP", "BLEND", "BASS SWAP", "SALIDA")
+    phase = phase_names[_rhythm_phase_index(status)]
+    bpm_text = f"{float(bpm):.1f}" if bpm is not None else "---"
+    return (
+        '<header class="rhythm-header">'
+        f'<div class="rhythm-meta lesson"><span>LECCIÓN</span><strong>{escape(lesson_name)}</strong></div>'
+        f'<div class="rhythm-meta phase"><span>FASE</span><strong>{phase}</strong></div>'
+        f'<div class="rhythm-meta"><span>BPM</span><strong>{bpm_text}</strong></div>'
+        '<div class="rhythm-meta"><span>MODO</span><strong>PRÁCTICA</strong></div>'
+        '<span class="rhythm-exit">TRAKTOR · MÚSICA / DJ COACH · COREOGRAFÍA</span>'
+        '</header>'
+    )
+
+
+def render_rhythm_phases(status: dict[str, Any]) -> str:
+    labels = ("Preparación", "Entrada B", "EQ Prep", "Blend", "Bass Swap", "Salida")
+    current = _rhythm_phase_index(status)
+    phases = "".join(
+        f'<div class="rhythm-phase {"completed" if index < current else "current" if index == current else "pending"}">'
+        f'<span class="rhythm-phase-dot">{"✓" if index < current else index + 1}</span>'
+        f'<span>{label}</span></div>'
+        for index, label in enumerate(labels)
+    )
+    return f'<nav class="rhythm-phases">{phases}</nav>'
+
+
+def render_rhythm_now_focus(status: dict[str, Any]) -> str:
+    """Zona fija: la orden se lee quieta al llegar a su ventana musical."""
+    moment = status.get("current")
+    if not moment or status.get("state") != "guiding":
+        return ""
+    bpm = float(status.get("musical_context", {}).get("bpm") or 128.0)
+    seconds = status.get("seconds_until_current")
+    beats = float(seconds or 0.0) * bpm / 60.0
+    if beats > 4.0:
+        return ""
+    now = beats <= 1.0
+    intent, _ = _moment_intent(moment)
+    actions = list(moment.get("actions", []))
+    tokens = " ".join(_rhythm_action_label(action) for action in actions)
+    target = _rhythm_action_target(actions[0]) if len(actions) == 1 else ""
+    instruction = intent if intent == "BASS SWAP" else tokens
+    return (
+        f'<section class="rhythm-now-focus {"now" if now else "prepare"}">'
+        f'<span>{"AHORA" if now else "PREPARATE"}</span>'
+        f'<strong>{escape(instruction)}</strong>'
+        f'<em>{escape(target or _rhythm_countdown(seconds, bpm))}</em></section>'
+    )
+
+
+def render_rhythm_lane(status: dict[str, Any]) -> str:
+    state = status.get("state", "idle")
+    if state == "idle":
+        return '<section class="rhythm-lane"><div class="rhythm-wait">INICIÁ EL INTENTO CUANDO ESTÉS LISTO</div></section>'
+    if state == "waiting_for_play":
+        return '<section class="rhythm-lane"><div class="rhythm-wait">PULSÁ PLAY EN DECK A PARA INICIAR EL RELOJ</div></section>'
+    bpm = float(status.get("musical_context", {}).get("bpm") or 128.0)
+    student_seconds = float(status.get("student_seconds", 0.0))
+    cards = []
+    for moment in status.get("timeline", []):
+        delta_beats = (float(moment["reference_seconds"]) - student_seconds) * bpm / 60.0
+        visual_state = str(moment.get("visual_state", "pending"))
+        if delta_beats < -4.0 and visual_state not in {"current", "problem"}:
+            continue
+        if delta_beats > 10.0:
+            continue
+        left = max(7.0, min(95.0, 62.0 - delta_beats * 5.5))
+        stage = "now" if abs(delta_beats) <= 1.0 else "prepare" if delta_beats <= 4.0 else "far"
+        # Cada fila representa una mano. No comprimimos dos movimientos
+        # distintos en una tarjeta porque el alumno debe verlos como dos
+        # gestos físicos independientes.
+        for lane, action in enumerate(moment.get("actions", [])[:2]):
+            top = 24 + lane * 82
+            action_color = _rhythm_card_color({"actions": [action]})
+            cards.append(
+                f'<article class="rhythm-card {action_color} status-{escape(visual_state)} {stage}" '
+                f'style="left:{left:.1f}%;top:{top}px">'
+                f'<div class="rhythm-card-actions"><span class="rhythm-action">'
+                f'{escape(_rhythm_action_label(action))}</span></div></article>'
+            )
+    scale = '<span>8 BEATS</span><span>6</span><span>4</span><span>2</span><strong>1</strong>'
+    focus = render_rhythm_now_focus(status)
+    return (
+        '<section class="rhythm-lane"><div class="rhythm-now"><i></i></div>'
+        f'{"".join(cards)}{focus}<div class="rhythm-scale">{scale}</div></section>'
+    )
+
+
+def _rhythm_countdown(seconds: float | int | None, bpm: float | None) -> str:
+    if seconds is None:
+        return "---"
+    beats = max(0, round(max(0.0, float(seconds)) * float(bpm or 128.0) / 60.0))
+    return "AHORA" if beats == 0 else f"En {beats} beats"
+
+
+def render_rhythm_next(status: dict[str, Any]) -> str:
+    moment = status.get("next")
+    bpm = status.get("musical_context", {}).get("bpm")
+    if not moment:
+        return '<aside class="rhythm-next"><small>PRÓXIMO</small><h3>--- </h3></aside>'
+    intent, _ = _moment_intent(moment)
+    actions_list = list(moment.get("actions", []))
+    if intent == "BASS SWAP":
+        action_text = " · ".join(
+            _rhythm_action_label(action) for action in actions_list
+        )
+        label = "BASS SWAP"
+    else:
+        action_text = _rhythm_action_label(actions_list[0]) if actions_list else "---"
+        label = action_text
+    return (
+        '<aside class="rhythm-next"><small>PRÓXIMO</small>'
+        f'<div class="rhythm-next-time">{escape(_rhythm_countdown(status.get("seconds_until_next"), bpm))}</div>'
+        f'<h3>{escape(label)}</h3><span class="rhythm-next-action">{escape(action_text)}</span></aside>'
+    )
+
+
+def render_rhythm_feedback(status: dict[str, Any]) -> str:
+    feedback = list(status.get("feedback", []))
+    if status.get("state") == "waiting_for_play":
+        item = {"state": "pending", "verdict": "READY", "message": "Esperando PLAY de Deck A"}
+    elif status.get("state") == "idle":
+        item = {"state": "pending", "verdict": "READY", "message": "Listo para empezar"}
+    elif feedback:
+        item = feedback[0]
+    else:
+        item = {"state": "pending", "verdict": "PREPARATE", "message": "La acción se acerca a AHORA"}
+    delta = item.get("delta_beats")
+    delta_text = ""
+    if delta is not None:
+        sign = "+" if float(delta) > 0 else ""
+        delta_text = f' · {sign}{float(delta):g} beat'
+    combo = int(status.get("combo", 0))
+    combo_html = f'<span class="rhythm-combo">x{combo} COMBO</span>' if combo >= 2 else ""
+    return (
+        '<section class="rhythm-feedback">'
+        f'<strong class="rhythm-verdict {escape(str(item.get("state", "pending")))}">{escape(str(item.get("verdict", "READY")))}</strong>'
+        f'<span class="rhythm-feedback-detail">{escape(str(item.get("message", "")))}{delta_text}</span>{combo_html}</section>'
     )
 
 
@@ -1809,33 +2026,28 @@ def register_product_pages(runtime: Any) -> None:
             lesson_plan_dialog.on("hide", lambda _event: stop_lesson_plan_listener())
 
             idle_status = {"state": "idle"}
-            with ui.element("section").classes("lesson-summary guided-shell"):
+            with ui.element("section").classes("lesson-summary guided-shell rhythm-shell"):
                 context_view = ui.html(
-                    render_coach_context(lesson.name, idle_status), sanitize=False
+                    render_rhythm_header(lesson.name, idle_status), sanitize=False
                 ).classes("w-full")
                 timeline_view = ui.html(
-                    render_coach_timeline(idle_status), sanitize=False
+                    render_rhythm_phases(idle_status), sanitize=False
                 ).classes("w-full")
-                with ui.element("div").classes("coach-layout"):
+                with ui.element("div").classes("rhythm-stage"):
                     now_view = ui.html(
-                        render_coach_now(None, "idle"), sanitize=False
+                        render_rhythm_lane(idle_status), sanitize=False
                     ).classes("w-full")
-                    with ui.element("aside").classes("coach-sidebar"):
-                        next_view = ui.html(
-                            render_coach_next(None, None, None), sanitize=False
-                        ).classes("w-full")
-                        feedback_view = ui.html(
-                            render_coach_feedback(idle_status), sanitize=False
-                        ).classes("w-full")
-                with ui.element("div").classes("guided-controls"):
+                    next_view = ui.html(
+                        render_rhythm_next(idle_status), sanitize=False
+                    ).classes("w-full")
+                feedback_view = ui.html(
+                    render_rhythm_feedback(idle_status), sanitize=False
+                ).classes("w-full")
+                with ui.element("div").classes("rhythm-controls"):
                     practice_progress = ui.label(
                         "Prepará Traktor y comenzá cuando estés listo."
                     ).classes("practice-progress")
                     with ui.element("div").classes("guided-actions"):
-                        ui.button(
-                            f"VER PLAN · {len(lesson_steps)} ACCIONES",
-                            on_click=open_lesson_plan,
-                        ).props("outline color=blue").set_visibility(False)
                         start_attempt_button = ui.button("INICIAR INTENTO").props(
                             "unelevated color=pink"
                         )
@@ -1877,55 +2089,17 @@ def register_product_pages(runtime: Any) -> None:
                     start_attempt_button.set_enabled(not active)
                     stop_attempt_button.set_enabled(active)
                     context_view.set_content(
-                        render_coach_context(lesson.name, status)
+                        render_rhythm_header(lesson.name, status)
                     )
-                    timeline_view.set_content(render_coach_timeline(status))
+                    timeline_view.set_content(render_rhythm_phases(status))
+                    now_view.set_content(render_rhythm_lane(status))
+                    next_view.set_content(render_rhythm_next(status))
+                    feedback_view.set_content(render_rhythm_feedback(status))
                     if state == "idle":
-                        now_view.set_content(render_coach_now(None, state))
-                        next_view.set_content(render_coach_next(None, None, None))
-                        feedback_view.set_content(render_coach_feedback(status))
                         practice_progress.set_text(
                             "Prepará Traktor y comenzá cuando estés listo."
                         )
                         return
-                    context = status.get("musical_context", {})
-                    bpm = context.get("bpm")
-                    mixer_state = status.get("mixer_state")
-                    if state == "waiting_for_play":
-                        now_view.set_content(
-                            render_coach_now(None, state, None, bpm, mixer_state)
-                        )
-                        next_view.set_content(
-                            render_coach_next(
-                                status.get("current"),
-                                status.get("seconds_until_current"),
-                                bpm,
-                            )
-                        )
-                    elif state == "guidance_complete":
-                        now_view.set_content(
-                            render_coach_now(None, state, None, bpm, mixer_state)
-                        )
-                        next_view.set_content(render_coach_next(None, None, bpm))
-                    else:
-                        seconds_until = float(status["seconds_until_current"])
-                        now_view.set_content(
-                            render_coach_now(
-                                status.get("current"),
-                                state,
-                                seconds_until,
-                                bpm,
-                                mixer_state,
-                            )
-                        )
-                        next_view.set_content(
-                            render_coach_next(
-                                status.get("next"),
-                                status.get("seconds_until_next"),
-                                bpm,
-                            )
-                        )
-                    feedback_view.set_content(render_coach_feedback(status))
                     practice_progress.set_text(
                         f'{status["completed_count"]} correctas · '
                         f'{status["missed_count"]} con problema · '

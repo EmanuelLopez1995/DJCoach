@@ -343,6 +343,18 @@ class GuidedPracticeRecorder:
                     feedback_state = "problem"
                     verdict = "MISSED"
                     message = step["instruction"]
+                # Durante la mezcla el feedback debe sentirse musical. La
+                # evaluación persistida conserva sus tiempos en segundos,
+                # pero la pantalla responde en beats cuando Traktor informa
+                # el BPM actual.
+                elif delta_beats is not None and delta_beats <= -1.5:
+                    feedback_state = "warning"
+                    verdict = "EARLY"
+                    message = step["instruction"]
+                elif delta_beats is not None and delta_beats >= 1.5:
+                    feedback_state = "warning"
+                    verdict = "LATE"
+                    message = step["instruction"]
                 elif timing == "early":
                     feedback_state = "warning"
                     verdict = "EARLY"

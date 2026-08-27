@@ -1,10 +1,82 @@
 import unittest
+from types import SimpleNamespace
 
 import dj_coach_web as web
-from djcoach.web.product_pages import render_guidance_moment
+from djcoach.web.product_pages import (
+    render_guidance_moment,
+    render_mixer_calibration,
+)
 
 
 class WebDashboardTests(unittest.TestCase):
+    def test_mixer_calibration_looks_like_hardware_controls(self) -> None:
+        items = []
+        for section in ("deck_a", "deck_b"):
+            for control in (
+                "low",
+                "mid",
+                "high",
+                "gain",
+                "fx_adjust",
+                "volume",
+                "track_progress",
+            ):
+                value = 127 if control == "volume" else 63
+                items.append(
+                    SimpleNamespace(
+                        section=section,
+                        control=control,
+                        target=value,
+                        current=value,
+                        target_display=f"MIDI {value}",
+                        current_display=f"MIDI {value}",
+                        matched=True,
+                        instruction="Posición correcta",
+                    )
+                )
+            for control in ("fx_on", "cue", "play", "loop_active", "sync"):
+                items.append(
+                    SimpleNamespace(
+                        section=section,
+                        control=control,
+                        target=False,
+                        current=False,
+                        target_display="OFF",
+                        current_display="OFF",
+                        matched=True,
+                        instruction="Posición correcta",
+                    )
+                )
+        items.extend(
+            [
+                SimpleNamespace(
+                    section="mixer", control="crossfader", target=63,
+                    current=63, target_display="MIDI 63",
+                    current_display="MIDI 63", matched=True,
+                    instruction="Posición correcta",
+                ),
+                SimpleNamespace(
+                    section="mixer", control="master_clock", target=True,
+                    current=True, target_display="ON", current_display="ON",
+                    matched=True, instruction="Posición correcta",
+                ),
+                SimpleNamespace(
+                    section="mixer", control="master_bpm", target=136.0,
+                    current=136.0, target_display="136.0 BPM",
+                    current_display="136.0 BPM", matched=True,
+                    instruction="Posición correcta",
+                ),
+            ]
+        )
+        page = render_mixer_calibration(SimpleNamespace(items=items))
+
+        self.assertIn('class="knob-face"', page)
+        self.assertIn('class="vertical-fader"', page)
+        self.assertIn("CROSSFADER", page)
+        self.assertIn("Posición actual", page)
+        self.assertLess(page.index("DECK A"), page.index("MIXER / CLOCK"))
+        self.assertLess(page.index("MIXER / CLOCK"), page.index("DECK B"))
+
     def test_guidance_moment_separates_deck_and_mixer_lanes(self) -> None:
         page = render_guidance_moment(
             {

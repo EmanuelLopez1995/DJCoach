@@ -33,6 +33,12 @@ Traktor.
 - [x] Agrupar acciones simultáneas y mostrarlas en carriles Deck A, Deck B y Mixer.
 - [x] Mantener visibles el momento anterior, el actual y el próximo.
 - [x] Sincronizar el inicio de la guía con el primer `PLAY` de Deck A.
+- [x] Comparar el estado inicial del alumno contra la referencia antes de practicar.
+- [x] Guiar cada ajuste inicial y bloquear el intento hasta que coincida.
+- [x] Representar la calibración como una Kontrol Z1: perillas, faders,
+  crossfader y botones con posición actual/objetivo.
+- [x] Revalidar atómicamente el mixer al pulsar Iniciar intento.
+- [x] Impedir referencias nuevas cuando faltan valores MIDI iniciales esenciales.
 - [ ] Comparar reference take contra student attempt con tolerancias.
 - [ ] Mostrar feedback concreto por técnica.
 - [ ] Permitir repetir y conservar el historial de intentos.

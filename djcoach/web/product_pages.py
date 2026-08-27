@@ -20,6 +20,7 @@ from djcoach.lessons import (
     FEATURE_SCHEMA_VERSION,
     evaluate_preparation,
     extract_take_features,
+    compare_initial_state,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -52,8 +53,10 @@ PRODUCT_CSS = """
 .guidance-card { display:grid; gap:10px; margin:20px 0; padding:24px; border:1px solid #ff4fd8; border-radius:18px; background:linear-gradient(145deg,#18101b,#0b1118); }.guidance-state { color:#ff83e4; font-size:11px; font-weight:800; letter-spacing:.14em; }.guidance-action { min-height:58px; color:#fff; font-size:26px; font-weight:800; line-height:1.25; }.guidance-time { color:#ffb4ed; font-family:monospace; }.next-action { padding:14px; border:1px solid #263140; border-radius:11px; color:#93a1b3; background:#0b1118; }.practice-progress { color:#94a2b3; }
 .moment-shell { display:grid; gap:9px; }.moment-title { color:#8fa0b5; font-size:10px; font-weight:800; letter-spacing:.14em; }.moment-lanes { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }.moment-lane { min-height:72px; padding:11px; border:1px solid #263140; border-radius:11px; background:#0b1118; }.moment-lane.deck-a { border-top:2px solid #36d7ff; }.moment-lane.deck-b { border-top:2px solid #ff4fd8; }.moment-lane.mixer { border-top:2px solid #ffb648; }.lane-title { margin-bottom:7px; color:#8996a7; font-size:10px; font-weight:800; letter-spacing:.1em; }.lane-action { display:flex; gap:7px; margin-top:5px; color:#edf2f7; line-height:1.35; }.lane-action.done { color:#58e5a3; }.lane-action.missed { color:#ffb648; }.moment-empty { color:#657386; }.moment-previous,.moment-next { padding:13px; border:1px solid #263140; border-radius:13px; background:#0b1118; opacity:.86; }.moment-current { padding:16px; border:1px solid #ff4fd8; border-radius:15px; background:#120d16; }
 .result-score { color:#ff4fd8; font-size:48px; font-weight:900; }.result-row { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.result-ok { color:#58e5a3; }.result-missed { color:#ffb648; }
+.calibration-summary { color:#ffb4ed; font-weight:700; }.hardware-legend { display:flex; flex-wrap:wrap; gap:16px; margin:10px 0 14px; color:#8fa0b5; font-size:12px; }.legend-current,.legend-target { display:inline-block; width:12px; height:3px; margin-right:5px; vertical-align:middle; }.legend-current { background:#36d7ff; }.legend-target { background:#ff4fd8; }.hardware-mixer { display:grid; grid-template-columns:1fr .72fr 1fr; gap:12px; margin:12px 0 18px; }.hardware-deck,.hardware-center { padding:16px; border:1px solid #303a48; border-radius:16px; background:linear-gradient(160deg,#171d25,#090d12); box-shadow:inset 0 0 24px #0005; }.hardware-deck.deck-a { border-top:2px solid #36d7ff; }.hardware-deck.deck-b { border-top:2px solid #ff4fd8; }.hardware-title { margin-bottom:13px; color:#d9e2ec; font-size:12px; font-weight:900; letter-spacing:.14em; text-align:center; }.knob-bank { display:grid; grid-template-columns:repeat(3,1fr); gap:14px 8px; }.hw-control { display:grid; justify-items:center; gap:6px; min-width:0; }.hw-label { color:#c7d0dc; font-size:10px; font-weight:800; letter-spacing:.05em; text-align:center; }.hw-values { color:#778598; font-size:9px; text-align:center; }.knob-face { position:relative; width:52px; height:52px; border:3px solid #3a4553; border-radius:50%; background:radial-gradient(circle at 40% 32%,#3a414b,#15191f 62%,#07090c); box-shadow:0 5px 8px #0009,inset 0 0 0 2px #0b0e12; }.hw-control.matched .knob-face { border-color:#3a9b70; }.knob-pointer,.knob-target { position:absolute; inset:4px; border-radius:50%; }.knob-pointer span { position:absolute; top:1px; left:calc(50% - 1px); width:2px; height:19px; border-radius:2px; background:#36d7ff; box-shadow:0 0 5px #36d7ff; }.knob-target span { position:absolute; top:-8px; left:calc(50% - 2px); width:4px; height:8px; border-radius:2px; background:#ff4fd8; box-shadow:0 0 5px #ff4fd8; }
+.deck-lower { display:grid; grid-template-columns:84px 1fr; gap:12px; margin-top:18px; }.vertical-fader { position:relative; width:48px; height:150px; margin:4px auto; }.vertical-fader .fader-rail { position:absolute; top:5px; bottom:5px; left:22px; width:4px; border-radius:4px; background:#05070a; box-shadow:inset 0 0 0 1px #35404d; }.vertical-fader .target-line { position:absolute; left:6px; width:36px; height:3px; background:#ff4fd8; box-shadow:0 0 5px #ff4fd8; }.vertical-fader .fader-handle { position:absolute; left:3px; width:42px; height:17px; border-radius:4px; background:linear-gradient(#4b5562,#15191e); border:1px solid #667280; box-shadow:0 3px 6px #000; }.fader-name { color:#c7d0dc; font-size:10px; font-weight:800; text-align:center; }.button-bank { display:grid; grid-template-columns:1fr 1fr; align-content:start; gap:8px; }.hw-button { min-height:44px; padding:7px; border:1px solid #3a4553; border-radius:7px; background:linear-gradient(#2c333c,#12161b); color:#aab5c2; font-size:9px; font-weight:800; text-align:center; }.hw-button .led { display:block; width:7px; height:7px; margin:0 auto 5px; border-radius:50%; background:#3b4652; }.hw-button.on .led { background:#36d7ff; box-shadow:0 0 7px #36d7ff; }.hw-button.mismatch { border-color:#ff4fd8; }.hw-button .target-state { display:block; margin-top:3px; color:#ff83e4; font-size:8px; }.track-slider,.crossfader-visual { position:relative; height:38px; margin:9px 4px 15px; }.horizontal-rail { position:absolute; top:17px; left:5px; right:5px; height:4px; border-radius:4px; background:#05070a; box-shadow:inset 0 0 0 1px #35404d; }.horizontal-target { position:absolute; top:7px; width:3px; height:24px; background:#ff4fd8; box-shadow:0 0 5px #ff4fd8; }.horizontal-handle { position:absolute; top:5px; width:17px; height:28px; border-radius:4px; background:linear-gradient(90deg,#4b5562,#15191e); border:1px solid #667280; box-shadow:2px 2px 6px #000; }.center-block { margin-top:18px; padding:11px; border:1px solid #2e3947; border-radius:11px; background:#0b1016; }.clock-display { padding:12px; border:1px solid #2e3947; border-radius:9px; background:#070b10; text-align:center; }.clock-bpm { color:#f4f7fb; font-size:24px; font-weight:900; }.clock-target { color:#ff83e4; font-size:10px; }.hardware-instructions { display:grid; gap:6px; margin:10px 0; }.hardware-instruction { padding:8px 10px; border-left:3px solid #ff4fd8; border-radius:6px; background:#17101a; color:#d7b5d0; font-size:11px; }
 @media(max-width:800px){.mode-grid,.lesson-tracks{grid-template-columns:1fr}.product-header h1{font-size:32px}}
-@media(max-width:800px){.prep-grid,.review-grid,.moment-lanes{grid-template-columns:1fr}.timeline-row{grid-template-columns:70px 1fr}.timeline-detail{grid-column:1/-1}}
+@media(max-width:850px){.prep-grid,.review-grid,.moment-lanes,.hardware-mixer{grid-template-columns:1fr}.timeline-row{grid-template-columns:70px 1fr}.timeline-detail{grid-column:1/-1}.hardware-center{order:3}}
 """
 
 
@@ -134,6 +137,140 @@ def render_guidance_moment(
         f'<div class="moment-shell moment-{variant}">'
         f'<div class="moment-title">{escape(title)}</div>'
         f'<div class="moment-lanes">{"".join(lanes)}</div></div>'
+    )
+
+
+def _midi_percentage(value: int | float | bool | None) -> float:
+    if value is None or isinstance(value, bool):
+        return 50.0
+    return max(0.0, min(100.0, float(value) / 127.0 * 100.0))
+
+
+def _knob_angle(value: int | float | bool | None) -> float:
+    return -135.0 + _midi_percentage(value) / 100.0 * 270.0
+
+
+def _render_knob(item: Any, label: str) -> str:
+    state_class = "matched" if item.matched else "mismatch"
+    return (
+        f'<div class="hw-control {state_class}">'
+        '<div class="knob-face">'
+        f'<div class="knob-target" style="transform:rotate({_knob_angle(item.target):.1f}deg)"><span></span></div>'
+        f'<div class="knob-pointer" style="transform:rotate({_knob_angle(item.current):.1f}deg)"><span></span></div>'
+        '</div>'
+        f'<div class="hw-label">{escape(label)}</div>'
+        f'<div class="hw-values">actual {escape(item.current_display)}<br>objetivo {escape(item.target_display)}</div>'
+        '</div>'
+    )
+
+
+def _render_vertical_fader(item: Any) -> str:
+    current = _midi_percentage(item.current)
+    target = _midi_percentage(item.target)
+    return (
+        '<div class="hw-control">'
+        '<div class="vertical-fader">'
+        '<div class="fader-rail"></div>'
+        f'<div class="target-line" style="bottom:{target:.1f}%"></div>'
+        f'<div class="fader-handle" style="bottom:{current:.1f}%;transform:translateY(50%)"></div>'
+        '</div><div class="fader-name">VOLUME</div>'
+        f'<div class="hw-values">actual {escape(item.current_display)}<br>objetivo {escape(item.target_display)}</div>'
+        '</div>'
+    )
+
+
+def _render_state_button(item: Any, label: str) -> str:
+    on_class = "on" if bool(item.current) else "off"
+    mismatch = "" if item.matched else " mismatch"
+    return (
+        f'<div class="hw-button {on_class}{mismatch}"><span class="led"></span>'
+        f'{escape(label)}<span class="target-state">objetivo '
+        f'{escape(item.target_display)}</span></div>'
+    )
+
+
+def _render_horizontal_control(item: Any, label: str, css_class: str) -> str:
+    current = _midi_percentage(item.current)
+    target = _midi_percentage(item.target)
+    return (
+        f'<div class="hw-label">{escape(label)}</div>'
+        f'<div class="{css_class}"><div class="horizontal-rail"></div>'
+        f'<div class="horizontal-target" style="left:{target:.1f}%"></div>'
+        f'<div class="horizontal-handle" style="left:{current:.1f}%;transform:translateX(-50%)"></div>'
+        '</div>'
+        f'<div class="hw-values">actual {escape(item.current_display)} · objetivo {escape(item.target_display)}</div>'
+    )
+
+
+def render_mixer_calibration(comparison: Any) -> str:
+    items = {
+        (item.section, item.control): item for item in comparison.items
+    }
+
+    def deck(section: str, title: str, css_class: str) -> str:
+        knobs = "".join(
+            _render_knob(items[(section, control)], label)
+            for control, label in (
+                ("gain", "GAIN"),
+                ("high", "HIGH"),
+                ("mid", "MID"),
+                ("low", "LOW"),
+                ("fx_adjust", "FILTER / FX"),
+            )
+        )
+        buttons = "".join(
+            _render_state_button(items[(section, control)], label)
+            for control, label in (
+                ("fx_on", "FX ON"),
+                ("cue", "CUE"),
+                ("play", "PLAY"),
+                ("loop_active", "LOOP"),
+                ("sync", "SYNC"),
+            )
+        )
+        return (
+            f'<section class="hardware-deck {css_class}">'
+            f'<div class="hardware-title">{escape(title)}</div>'
+            f'<div class="knob-bank">{knobs}</div>'
+            '<div class="deck-lower">'
+            f'{_render_vertical_fader(items[(section, "volume")])}'
+            f'<div class="button-bank">{buttons}</div></div>'
+            '<div class="center-block">'
+            f'{_render_horizontal_control(items[(section, "track_progress")], "POSICIÓN DEL TRACK", "track-slider")}'
+            '</div></section>'
+        )
+
+    clock = items[("mixer", "master_clock")]
+    bpm = items[("mixer", "master_bpm")]
+    center = (
+        '<section class="hardware-center">'
+        '<div class="hardware-title">MIXER / CLOCK</div>'
+        f'{_render_state_button(clock, "MASTER CLOCK")}'
+        '<div class="clock-display">'
+        f'<div class="clock-bpm">{escape(bpm.current_display)}</div>'
+        f'<div class="clock-target">objetivo {escape(bpm.target_display)}</div>'
+        '</div><div class="center-block">'
+        f'{_render_horizontal_control(items[("mixer", "crossfader")], "CROSSFADER", "crossfader-visual")}'
+        '</div></section>'
+    )
+    mismatches = [item for item in comparison.items if not item.matched]
+    instructions = "".join(
+        f'<div class="hardware-instruction">{escape(item.instruction)}</div>'
+        for item in mismatches[:6]
+    )
+    if len(mismatches) > 6:
+        instructions += (
+            f'<div class="hardware-instruction">Y {len(mismatches) - 6} ajustes más…</div>'
+        )
+    return (
+        '<div class="hardware-legend">'
+        '<span><i class="legend-current"></i>Posición actual</span>'
+        '<span><i class="legend-target"></i>Objetivo del profesor</span>'
+        '</div>'
+        f'<div class="hardware-instructions">{instructions}</div>'
+        '<div class="hardware-mixer">'
+        f'{deck("deck_a", "DECK A", "deck-a")}{center}'
+        f'{deck("deck_b", "DECK B", "deck-b")}</div>'
     )
 
 
@@ -605,8 +742,9 @@ def register_product_pages(runtime: Any) -> None:
         with ui.column().classes("product-page"):
             try:
                 lesson = repository.get(lesson_id)
-                if lesson.status != "ready_for_practice":
+                if lesson.status != "ready_for_practice" or not lesson.reference_take_id:
                     raise FileNotFoundError
+                reference_take = take_repository.get(lesson.reference_take_id)
             except FileNotFoundError:
                 product_shell(
                     "Práctica no disponible",
@@ -636,15 +774,21 @@ def register_product_pages(runtime: Any) -> None:
                         confirm_b = ui.checkbox(
                             "Confirmo el nombre visible en Deck B"
                         )
-                ready_to_start = ui.checkbox(
-                    "Ambos decks están pausados y ubicados donde comenzará la práctica"
-                )
                 with ui.element("div").classes("readiness-list"):
                     midi_line = ui.label().classes("readiness-line")
                     deck_a_line = ui.label().classes("readiness-line")
                     deck_b_line = ui.label().classes("readiness-line")
                     names_line = ui.label().classes("readiness-line")
-                    start_line = ui.label().classes("readiness-line")
+                ui.html("<h2>Igualá el estado inicial del profesor</h2>")
+                calibration_summary = ui.label().classes("calibration-summary")
+                reference_comparison = compare_initial_state(
+                    reference_take.initial_state,
+                    reference_take.initial_state,
+                )
+                calibration_dashboard = ui.html(
+                    render_mixer_calibration(reference_comparison),
+                    sanitize=False,
+                ).classes("w-full")
                 continue_button = ui.button(
                     "COMENZAR PRÁCTICA GUIADA",
                     on_click=lambda: ui.navigate.to(
@@ -653,8 +797,12 @@ def register_product_pages(runtime: Any) -> None:
                 ).props("unelevated color=pink")
 
                 def refresh_student_preparation() -> None:
+                    snapshot = runtime.snapshot()
                     status = evaluate_preparation(
-                        runtime.snapshot(), bool(confirm_a.value), bool(confirm_b.value)
+                        snapshot, bool(confirm_a.value), bool(confirm_b.value)
+                    )
+                    calibration = compare_initial_state(
+                        reference_take.initial_state, snapshot
                     )
                     mark = lambda value: "✓" if value else "○"
                     midi_line.set_text(
@@ -673,20 +821,25 @@ def register_product_pages(runtime: Any) -> None:
                     names_line.set_text(
                         f"{mark(names_ok)} Nombres confirmados"
                     )
-                    start_line.set_text(
-                        f"{mark(bool(ready_to_start.value))} Decks pausados y listos para iniciar"
+                    calibration_dashboard.set_content(
+                        render_mixer_calibration(calibration)
+                    )
+                    calibration_summary.set_text(
+                        "✓ Mixer listo para comenzar"
+                        if calibration.ready
+                        else (
+                            f"Faltan ajustar {calibration.mismatch_count} "
+                            "controles o estados"
+                        )
                     )
                     continue_button.set_enabled(
-                        status.ready and bool(ready_to_start.value)
+                        status.ready and calibration.ready
                     )
 
                 confirm_a.on_value_change(
                     lambda _event: refresh_student_preparation()
                 )
                 confirm_b.on_value_change(
-                    lambda _event: refresh_student_preparation()
-                )
-                ready_to_start.on_value_change(
                     lambda _event: refresh_student_preparation()
                 )
                 refresh_student_preparation()

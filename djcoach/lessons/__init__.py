@@ -12,6 +12,11 @@ from .guidance import (
     event_matches_step,
 )
 from .practice import GuidedPracticeRecorder
+from .initial_state import (
+    InitialStateComparison,
+    InitialStateItem,
+    compare_initial_state,
+)
 
 __all__ = [
     "LessonRepository",
@@ -21,9 +26,12 @@ __all__ = [
     "FEATURE_SCHEMA_VERSION",
     "AttemptRepository",
     "GuidedPracticeRecorder",
+    "InitialStateComparison",
+    "InitialStateItem",
     "build_guidance_steps",
     "build_guidance_moments",
     "event_matches_step",
+    "compare_initial_state",
     "evaluate_preparation",
     "extract_take_features",
 ]

@@ -63,6 +63,12 @@ reloj, pero divide cada momento en carriles Deck A, Deck B y Mixer. Las acciones
 simultáneas se completan independientemente y la vista solo revela el momento
 anterior, el actual y el próximo.
 
+Antes de iniciar, un contrato de estado compara el mixer actual contra el
+`initial_state` de la referencia: EQ, Gain, Filter, volúmenes, transporte,
+Crossfader, posición de tracks y Master Clock/BPM. Los continuos aceptan una
+tolerancia pequeña y los estados ON/OFF deben coincidir exactamente. La misma
+validación se repite al pulsar Iniciar para evitar cambios entre pantallas.
+
 ## Persistencia local
 
 ```text

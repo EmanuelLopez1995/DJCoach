@@ -1,3 +1,4 @@
+import copy
 import json
 import tempfile
 import unittest
@@ -14,10 +15,42 @@ from djcoach.lessons import (
     evaluate_preparation,
     build_guidance_moments,
     build_guidance_steps,
+    compare_initial_state,
     event_matches_step,
     extract_take_features,
 )
 from djcoach.tracks import TrackCatalog
+
+
+def complete_initial_snapshot() -> dict:
+    def continuous(midi: int) -> dict:
+        return {"midi": midi, "received": True}
+
+    deck = {
+        "low": continuous(63),
+        "mid": continuous(63),
+        "high": continuous(63),
+        "gain": continuous(63),
+        "fx_adjust": continuous(63),
+        "volume": continuous(127),
+        "track_progress": continuous(0),
+        "loaded": True,
+        "loaded_received": True,
+    }
+    for control in ("fx_on", "cue", "play", "loop_active", "sync"):
+        deck[control] = False
+        deck[f"{control}_received"] = True
+    return {
+        "status": "connected",
+        "deck_a": copy.deepcopy(deck),
+        "deck_b": copy.deepcopy(deck),
+        "crossfader": continuous(63),
+        "midi_clock": {
+            "bpm": 136.0,
+            "received": True,
+            "active": True,
+        },
+    }
 
 
 class LessonDomainTests(unittest.TestCase):
@@ -77,11 +110,7 @@ class LessonDomainTests(unittest.TestCase):
                 return {
                     "event_cursor": 4,
                     "elapsed_seconds": 20.0,
-                    "initial_state": {
-                        "status": "connected",
-                        "deck_a": {"loaded_received": True, "loaded": True},
-                        "deck_b": {"loaded_received": True, "loaded": True},
-                    },
+                    "initial_state": complete_initial_snapshot(),
                 }
 
             def finish_take_capture(self, _checkpoint):
@@ -261,6 +290,30 @@ class LessonDomainTests(unittest.TestCase):
         self.assertEqual(len(moments), 1)
         self.assertEqual(len(moments[0]["actions"]), 2)
 
+    def test_initial_state_comparison_uses_tolerance_and_directions(self) -> None:
+        reference = complete_initial_snapshot()
+        current = complete_initial_snapshot()
+        current["deck_a"]["low"]["midi"] = 60
+        current["deck_b"]["high"]["midi"] = 20
+        current["deck_a"]["fx_on"] = True
+
+        comparison = compare_initial_state(reference, current)
+        by_control = {
+            (item.section, item.control): item for item in comparison.items
+        }
+
+        self.assertTrue(by_control[("deck_a", "low")].matched)
+        self.assertFalse(by_control[("deck_b", "high")].matched)
+        self.assertEqual(
+            by_control[("deck_b", "high")].instruction,
+            "Subí HIGH Deck B",
+        )
+        self.assertEqual(
+            by_control[("deck_a", "fx_on")].instruction,
+            "Desactivá FX ON Deck A",
+        )
+        self.assertFalse(comparison.ready)
+
     def test_guided_practice_accepts_simultaneous_actions_in_any_order(self) -> None:
         class FakeRuntime:
             def __init__(self):
@@ -271,11 +324,7 @@ class LessonDomainTests(unittest.TestCase):
                 return {
                     "event_cursor": 0,
                     "elapsed_seconds": 0.0,
-                    "initial_state": {
-                        "status": "connected",
-                        "deck_a": {"loaded_received": True, "loaded": True},
-                        "deck_b": {"loaded_received": True, "loaded": True},
-                    },
+                    "initial_state": complete_initial_snapshot(),
                 }
 
             def peek_take_capture(self, _checkpoint):
@@ -307,6 +356,7 @@ class LessonDomainTests(unittest.TestCase):
             references = TakeRepository(root / "takes")
             attempts = AttemptRepository(root / "attempts")
             reference = Take(lesson_id=lesson.id, role=TakeRole.TEACHER)
+            reference.initial_state = complete_initial_snapshot()
             reference.features = {
                 "timeline": [
                     {

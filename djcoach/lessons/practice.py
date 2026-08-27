@@ -19,6 +19,7 @@ from .guidance import (
 )
 from .repository import LessonRepository
 from .take_repository import TakeRepository
+from .initial_state import compare_initial_state
 
 
 MISSED_AFTER_SECONDS = 15.0
@@ -85,6 +86,14 @@ class GuidedPracticeRecorder:
                 )
             ):
                 raise RuntimeError("Los dos decks deben informar LOADED antes de practicar.")
+            initial_comparison = compare_initial_state(
+                reference.initial_state, snapshot
+            )
+            if not initial_comparison.ready:
+                raise RuntimeError(
+                    f"El mixer todavía tiene {initial_comparison.mismatch_count} "
+                    "controles fuera del estado inicial del profesor."
+                )
 
             take = Take(
                 lesson_id=lesson_id,

@@ -13,6 +13,7 @@ from djcoach.domain import Take, TakeRole
 from .repository import LessonRepository
 from .take_repository import TakeRepository
 from .features import extract_take_features
+from .initial_state import compare_initial_state
 
 
 def timestamp_now() -> str:
@@ -60,6 +61,16 @@ class ReferenceTakeRecorder:
                 and snapshot["deck_b"]["loaded"]
             ):
                 raise RuntimeError("Los dos decks deben informar LOADED antes de grabar.")
+            completeness = compare_initial_state(snapshot, snapshot)
+            if not completeness.ready:
+                missing = [
+                    item.label
+                    for item in completeness.items
+                    if not item.matched
+                ]
+                raise RuntimeError(
+                    "Faltan valores MIDI iniciales: " + ", ".join(missing[:5])
+                )
 
             take = Take(
                 lesson_id=lesson_id,

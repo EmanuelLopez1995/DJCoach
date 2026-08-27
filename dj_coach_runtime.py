@@ -178,6 +178,38 @@ class DJCoachRuntime:
                 "saved_session_path": self.saved_session_path,
             }
 
+    def begin_take_capture(self) -> dict[str, Any]:
+        """Crea un punto de corte atómico para una futura toma de lección."""
+        with self.lock:
+            return {
+                "event_cursor": len(self.recorder.events),
+                "elapsed_seconds": self.recorder.elapsed(),
+                "initial_state": self.snapshot(),
+            }
+
+    def finish_take_capture(
+        self, checkpoint: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Devuelve eventos posteriores al corte, con tiempo relativo a la toma."""
+        with self.lock:
+            cursor = int(checkpoint["event_cursor"])
+            baseline = float(checkpoint["elapsed_seconds"])
+            events = copy.deepcopy(self.recorder.events[cursor:])
+            for event in events:
+                if "elapsed_seconds" in event:
+                    event["elapsed_seconds"] = round(
+                        max(0.0, float(event["elapsed_seconds"]) - baseline), 3
+                    )
+            return {
+                "events": events,
+                "final_state": self.snapshot(),
+            }
+
+    def take_event_count(self, checkpoint: dict[str, Any]) -> int:
+        with self.lock:
+            cursor = int(checkpoint["event_cursor"])
+            return max(0, len(self.recorder.events) - cursor)
+
     def arm_downbeat(self, side: str) -> None:
         with self.lock:
             arm_deck_downbeat(self.deck_tempos, side)

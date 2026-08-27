@@ -10,6 +10,7 @@ from nicegui import app, ui
 
 from dj_coach import effective_deck_bpm
 from dj_coach_runtime import DJCoachRuntime
+from djcoach.web import register_product_pages
 
 
 runtime = DJCoachRuntime()
@@ -330,8 +331,8 @@ h1 { margin:2px 0 0; font-size:32px; letter-spacing:.04em; } h2,h3 { margin:0; }
 """
 
 
-@ui.page("/")
-def index() -> None:
+@ui.page("/monitor")
+def monitor_page() -> None:
     ui.add_css(CSS)
 
     def mark_downbeat(side: str, name: str) -> None:
@@ -347,6 +348,7 @@ def index() -> None:
         ui.notify(f"Contador del Deck {name} reiniciado", position="top")
 
     with ui.row().classes("rhythm-toolbar"):
+        ui.button("← INICIO", on_click=lambda: ui.navigate.to("/")).props("flat")
         ui.label("CALIBRACIÓN DE COMPÁS")
         ui.button(
             "PRÓXIMO BEAT = 1 · DECK A",
@@ -371,6 +373,9 @@ def index() -> None:
         dashboard.set_content(render_dashboard(runtime.snapshot()))
 
     ui.timer(0.1, refresh)
+
+
+register_product_pages(runtime)
 
 
 def parse_args() -> argparse.Namespace:

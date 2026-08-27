@@ -4,8 +4,24 @@ Monitor local del estado MIDI del mixer de Traktor. Por ahora no utiliza IA ni
 analiza audio.
 
 El estado y los próximos pasos del proyecto se mantienen en
-[ROADMAP.md](ROADMAP.md). Los avisos actuales están documentados en
-[AVISOS_COACH.md](AVISOS_COACH.md).
+[docs/ROADMAP.md](docs/ROADMAP.md). Los avisos actuales están documentados en
+[docs/AVISOS_COACH.md](docs/AVISOS_COACH.md).
+La separación de responsabilidades se explica en
+[docs/PRODUCT_ARCHITECTURE.md](docs/PRODUCT_ARCHITECTURE.md).
+
+## Dirección del producto
+
+DJ Coach se está organizando alrededor de lecciones grabadas:
+
+```text
+Profesor mezcla en Traktor
+→ DJ Coach registra una referencia
+→ Alumno practica con los mismos tracks
+→ DJ Coach compara la técnica y explica diferencias
+```
+
+Traktor continúa siendo el entorno donde se mezcla. La aplicación administra
+tracks, lecciones, grabaciones, comparación y feedback.
 
 ## Ejecutar
 
@@ -50,6 +66,17 @@ D:\DJCoach\.venv\Scripts\python.exe D:\DJCoach\dj_coach_web.py
 ```
 
 Se abre automáticamente en `http://127.0.0.1:8080`.
+
+Rutas iniciales:
+
+| Ruta | Función |
+|---|---|
+| `/` | Entrada del producto: Profesor, Alumno y diagnóstico |
+| `/lessons/new` | Selección de tracks y creación de un borrador |
+| `/lessons/{id}` | Preparación y verificación de ambos decks |
+| `/lessons/{id}/record` | Grabación de la referencia MIDI del profesor |
+| `/practice` | Biblioteca local de lecciones |
+| `/monitor` | Dashboard técnico MIDI existente |
 
 Para arrancarla sin abrir el navegador:
 
@@ -147,5 +174,25 @@ para reducir el jitter de los valores MIDI discretos.
 ## Pruebas
 
 ```powershell
-python -m unittest -v
+python -m unittest discover -s tests -v
 ```
+
+## Estructura del proyecto
+
+```text
+djcoach/
+  domain/       modelos Track, Lesson y Take
+  lessons/      persistencia y servicios de lecciones
+  tracks/       catálogo local de canciones
+  web/          páginas del nuevo producto
+data/
+  tracks/demo/  audios locales de prueba, ignorados por Git
+  lessons/      lecciones JSON locales
+  takes/        referencias MIDI grabadas por el profesor
+  attempts/     intentos de alumnos
+docs/           roadmap, avisos y referencias de Traktor
+tests/          pruebas automatizadas
+```
+
+Los archivos raíz `dj_coach.py`, `dj_coach_runtime.py` y `dj_coach_web.py`
+continúan funcionando como motor MIDI, runtime y punto de entrada compatible.

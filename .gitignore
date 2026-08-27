@@ -3,5 +3,10 @@ __pycache__/
 sessions/*.json
 .venv/
 .tools/
-assets/canciones_prueba/
+data/tracks/**/*
+!data/tracks/demo/
+!data/tracks/demo/.gitkeep
+data/lessons/*.json
+data/takes/*.json
+data/attempts/*.json
 Settings.tsi

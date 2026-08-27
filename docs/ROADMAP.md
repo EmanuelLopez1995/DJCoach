@@ -11,6 +11,31 @@ Traktor.
 - **Experimental:** funciona, pero todavía necesita calibración o más sesiones
   reales.
 
+## Nueva prioridad: lecciones grabadas
+
+- [x] Mantener Traktor como superficie donde profesor y alumno mezclan.
+- [x] Separar la entrada del producto y el monitor técnico `/monitor`.
+- [x] Crear modelos versionados `TrackReference`, `Lesson` y `Take`.
+- [x] Crear catálogo local con los dos tracks demo.
+- [x] Crear persistencia JSON local para lecciones.
+- [x] Crear pantalla Profesor para seleccionar tracks y guardar un borrador.
+- [x] Crear biblioteca inicial de lecciones para el Alumno.
+- [x] Pantalla de preparación con conexión MIDI, `Loaded` por deck y confirmación manual de nombres.
+- [ ] Agregar verificación de downbeats antes de grabar.
+- [ ] **Experimental:** grabar un reference take desde el runtime; implementado,
+  pendiente de una prueba física completa con Traktor y la Z1.
+- [ ] Guardar estado inicial y eventos con tiempo y beat musical.
+- [ ] Extraer landmarks: entrada, bass swap, FX y salida.
+- [ ] Grabar un student attempt vinculado a la lección.
+- [ ] Comparar reference take contra student attempt con tolerancias.
+- [ ] Mostrar feedback concreto por técnica.
+- [ ] Permitir repetir y conservar el historial de intentos.
+- [ ] Crear visualización Ghost después de validar la comparación.
+
+La arquitectura de esta dirección está documentada en
+[PRODUCT_ARCHITECTURE.md](PRODUCT_ARCHITECTURE.md). El inventario técnico que
+sigue continúa siendo válido como infraestructura y backlog secundario.
+
 ## 1. Conexión e infraestructura
 
 - [x] Proyecto compatible con Python 3.12.
@@ -163,7 +188,7 @@ no se afirma si un deck va adelantado o atrasado.
 - [x] Mensaje principal del Coach.
 - [x] Historial de avisos recientes.
 - [ ] Pantalla de configuración de reglas y umbrales.
-- [ ] Pantalla para seleccionar o asociar canciones con los decks.
+- [x] Pantalla inicial para seleccionar canciones y crear una lección.
 - [ ] Vista rítmica con beat, compás y frase.
 - [ ] Vista de estructura/onda de cada canción.
 - [ ] Historial completo de la sesión dentro del frontend.
@@ -171,17 +196,18 @@ no se afirma si un deck va adelantado o atrasado.
 - [ ] Gráficos de evolución de volumen, EQ, crossfader y Phase.
 - [ ] Exportación de un informe legible de la sesión.
 
-## Orden de implementación sugerido
+## Orden de implementación actual
 
-1. [x] Contador de beats y compases con downbeat manual.
-2. [ ] Manejo de Cue, Seek y Loop dentro del contador.
-3. [ ] Identificación manual del track y lectura de sus metadatos.
-4. [ ] BPM original y porcentaje de cambio de tempo.
-5. [ ] Analizador offline de energía y estructura.
-6. [ ] Línea temporal sincronizada en el frontend.
-7. [ ] Recomendaciones de transición por compás y frase.
-8. [ ] Automatización de la identificación del track cargado.
-9. [ ] Medidores o análisis de audio para clipping y señal real.
+1. [x] Modelos, catálogo, borrador de lección y rutas del producto.
+2. [x] Preparación inicial con verificaciones y avance guiado.
+3. [ ] Grabación del reference take implementada; pendiente de validación física.
+4. [ ] Extracción de landmarks técnicos desde la referencia.
+5. [ ] Grabación de un intento del alumno.
+6. [ ] Comparación tolerante y primer informe.
+7. [ ] Historial de reintentos.
+8. [ ] Ghost visual.
+9. [ ] Identificación automática del track cargado en Traktor.
+10. [ ] Análisis musical avanzado de archivos y audio.
 
 ## Fuera de alcance por ahora
 

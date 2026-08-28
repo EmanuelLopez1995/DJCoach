@@ -20,6 +20,11 @@ from djcoach.lessons import (
     event_matches_step,
     evaluate_guided_attempt,
     extract_take_features,
+    delete_event,
+    merge_with_next,
+    prepare_review_timeline,
+    set_event_phase,
+    split_gesture,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -276,6 +281,60 @@ class LessonDomainTests(unittest.TestCase):
         self.assertEqual(result["verdict"], "PERFECT")
         self.assertTrue(result["curve"]["within_tolerance"])
         self.assertEqual(result["curve"]["sample_count"], 4)
+
+    def test_teacher_review_can_label_delete_split_and_merge_gestures(self) -> None:
+        features = {
+            "timeline": [
+                {
+                    "type": "control_gesture",
+                    "section": "deck_a",
+                    "control": "fx_adjust",
+                    "elapsed_seconds": 10.0,
+                    "started_at": 10.0,
+                    "ended_at": 14.0,
+                    "duration_seconds": 4.0,
+                    "start_value": 63,
+                    "end_value": 95,
+                    "minimum_value": 63,
+                    "maximum_value": 95,
+                    "delta": 32,
+                    "direction": "increase",
+                    "trajectory": [
+                        {"offset_seconds": 0.0, "value": 63},
+                        {"offset_seconds": 4.0, "value": 95},
+                    ],
+                },
+                {
+                    "type": "control_gesture",
+                    "section": "deck_a",
+                    "control": "fx_adjust",
+                    "elapsed_seconds": 14.0,
+                    "started_at": 14.0,
+                    "ended_at": 16.0,
+                    "duration_seconds": 2.0,
+                    "start_value": 95,
+                    "end_value": 80,
+                    "minimum_value": 80,
+                    "maximum_value": 95,
+                    "delta": -15,
+                    "direction": "decrease",
+                    "trajectory": [
+                        {"offset_seconds": 0.0, "value": 95},
+                        {"offset_seconds": 2.0, "value": 80},
+                    ],
+                },
+            ]
+        }
+        timeline = prepare_review_timeline(features)
+        first_id, second_id = timeline[0]["review_id"], timeline[1]["review_id"]
+        self.assertTrue(set_event_phase(features, first_id, "FX"))
+        self.assertEqual(features["timeline"][0]["phase"], "FX")
+        self.assertTrue(split_gesture(features, first_id))
+        self.assertEqual(len(features["timeline"]), 3)
+        self.assertTrue(merge_with_next(features, features["timeline"][0]["review_id"]))
+        self.assertEqual(len(features["timeline"]), 2)
+        self.assertTrue(delete_event(features, second_id))
+        self.assertEqual(len(features["timeline"]), 1)
 
     def test_feature_extractor_builds_one_ordered_technique_timeline(self) -> None:
         take = Take(

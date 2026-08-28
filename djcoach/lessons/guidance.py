@@ -167,6 +167,7 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
             + float(step.get("duration_seconds", 0.0)),
             3,
         )
+        step["phase"] = str(event.get("phase", "Sin fase"))
         steps.append(step)
     return steps
 

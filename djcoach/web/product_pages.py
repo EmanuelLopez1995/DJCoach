@@ -26,6 +26,12 @@ from djcoach.lessons import (
     extract_take_features,
     compare_initial_state,
     evaluate_guided_attempt,
+    PHASES,
+    delete_event,
+    merge_with_next,
+    prepare_review_timeline,
+    set_event_phase,
+    split_gesture,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -275,6 +281,16 @@ def _moment_intent(moment: dict[str, Any] | None) -> tuple[str, str]:
     if not moment or not moment.get("actions"):
         return "LISTO", "Esperá la próxima indicación del coach."
     actions = moment["actions"]
+    phase = next(
+        (
+            str(action.get("phase"))
+            for action in actions
+            if action.get("phase") and action.get("phase") != "Sin fase"
+        ),
+        None,
+    )
+    if phase:
+        return phase.upper(), "Seguí la fase que definió el profesor para esta parte de la mezcla."
     controls = {str(action.get("control", "")) for action in actions}
     sections = {str(action.get("section", "")) for action in actions}
     deck = next(iter(sections)) if len(sections) == 1 else None
@@ -1939,6 +1955,47 @@ def register_product_pages(runtime: Any) -> None:
                             )
                             ui.label(target).classes("timeline-target")
                             ui.label(detail).classes("timeline-detail")
+
+                with ui.element("section").classes("review-section"):
+                    ui.html("<h2>Editar antes de publicar</h2>")
+                    ui.label(
+                        "Eliminá ruido, dividí gestos largos, uní gestos consecutivos del mismo control y asigná una fase pedagógica."
+                    ).classes("prep-note")
+                    timeline_editor = ui.column().classes("review-timeline-editor")
+
+                    def save_review() -> None:
+                        take.features = features
+                        take_repository.save(take)
+
+                    def render_timeline_editor() -> None:
+                        timeline_editor.clear()
+                        with timeline_editor:
+                            for event in prepare_review_timeline(features):
+                                event_type = event["type"]
+                                if event_type == "control_gesture":
+                                    target = f'{section_label(event["section"])} · {CONTROL_LABELS.get(event["control"], event["control"].upper())}'
+                                    detail = f'MIDI {event["start_value"]} → {event["end_value"]} · {event.get("duration_seconds", 0):.1f} s'
+                                elif event_type == "transport_change":
+                                    target = f'{section_label(event["section"])} · {CONTROL_LABELS.get(event["control"], event["control"].upper())}'
+                                    detail = "ON" if event["active"] else "OFF"
+                                elif event_type == "selector_change":
+                                    target, detail = "TAMAÑO DE LOOP", str(event["label"])
+                                else:
+                                    target, detail = "TRANSICIÓN", event_type.replace("_", " ")
+                                with ui.element("div").classes("timeline-row review-edit-row"):
+                                    ui.label(format_seconds(event["elapsed_seconds"])).classes("timeline-time")
+                                    with ui.column().classes("gap-0"):
+                                        ui.label(target).classes("timeline-target")
+                                        ui.label(detail).classes("timeline-detail")
+                                    phase = ui.select(PHASES, value=event.get("phase", "Sin fase")).props("dense outlined").classes("review-phase-select")
+                                    phase.on_value_change(lambda change, event_id=event["review_id"]: (set_event_phase(features, event_id, str(change.value)), save_review()))
+                                    with ui.row().classes("gap-1"):
+                                        ui.button("ELIMINAR", on_click=lambda event_id=event["review_id"]: (delete_event(features, event_id), save_review(), render_timeline_editor())).props("flat dense color=negative")
+                                        if event_type == "control_gesture":
+                                            ui.button("DIVIDIR", on_click=lambda event_id=event["review_id"]: (split_gesture(features, event_id), save_review(), render_timeline_editor())).props("flat dense")
+                                            ui.button("UNIR SIGUIENTE", on_click=lambda event_id=event["review_id"]: (merge_with_next(features, event_id), save_review(), render_timeline_editor())).props("flat dense")
+
+                    render_timeline_editor()
 
                 with ui.element("div").classes("approval-panel"):
                     approval_state = ui.label().classes("approval-state")

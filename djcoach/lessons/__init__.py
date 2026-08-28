@@ -5,6 +5,7 @@ from .preparation import PreparationStatus, evaluate_preparation
 from .recording import ReferenceTakeRecorder
 from .take_repository import TakeRepository
 from .features import FEATURE_SCHEMA_VERSION, extract_take_features
+from .review import PHASES, delete_event, merge_with_next, prepare_review_timeline, set_event_phase, split_gesture
 from .attempt_repository import AttemptRepository
 from .guidance import (
     build_guidance_moments,
@@ -36,4 +37,10 @@ __all__ = [
     "compare_initial_state",
     "evaluate_preparation",
     "extract_take_features",
+    "PHASES",
+    "prepare_review_timeline",
+    "delete_event",
+    "set_event_phase",
+    "split_gesture",
+    "merge_with_next",
 ]

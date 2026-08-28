@@ -208,6 +208,75 @@ class LessonDomainTests(unittest.TestCase):
             finally:
                 runtime_module.MIDI_STATE_CACHE_PATH = original_path
 
+    def test_continuous_step_does_not_match_before_its_start(self) -> None:
+        step = {
+            "reference_seconds": 10.0,
+            "duration_seconds": 4.0,
+        }
+        self.assertFalse(GuidedPracticeRecorder._step_can_match_at(step, 9.0))
+        self.assertTrue(GuidedPracticeRecorder._step_can_match_at(step, 9.5))
+
+        evaluation = evaluate_guided_attempt(
+            [
+                {
+                    "id": "slow_fx",
+                    "order": 1,
+                    "kind": "control",
+                    "instruction": "SubÃ­ FX / FILTER de Deck A",
+                    "duration_seconds": 6.0,
+                }
+            ],
+            [
+                {
+                    "step_id": "slow_fx",
+                    "status": "completed",
+                    "delta_seconds": -1.0,
+                }
+            ],
+            {"midi_clock": {"received": True, "bpm": 120.0}},
+        )
+        self.assertEqual(evaluation["results"][0]["verdict"], "GOOD")
+
+    def test_sustained_gesture_uses_a_tolerant_curve_corridor(self) -> None:
+        step = {
+            "id": "slow_fx",
+            "order": 1,
+            "kind": "control",
+            "section": "deck_a",
+            "control": "fx_adjust",
+            "instruction": "SubÃ­ FX / FILTER de Deck A",
+            "reference_seconds": 10.0,
+            "duration_seconds": 4.0,
+            "start_value": 63,
+            "target_value": 95,
+            "trajectory": [
+                {"offset_seconds": 0.0, "value": 63},
+                {"offset_seconds": 4.0, "value": 95},
+            ],
+        }
+        events = [
+            {
+                "type": "midi_change",
+                "section": "deck_a",
+                "control": "fx_adjust",
+                "value": value,
+                "elapsed_seconds": elapsed,
+            }
+            for elapsed, value in ((11.0, 70), (12.0, 78), (13.0, 87), (14.0, 95))
+        ]
+        evaluation = evaluate_guided_attempt(
+            [step],
+            [{"step_id": "slow_fx", "status": "completed", "delta_seconds": 0.0}],
+            {"midi_clock": {"received": True, "bpm": 120.0}},
+            events,
+            0.0,
+        )
+
+        result = evaluation["results"][0]
+        self.assertEqual(result["verdict"], "PERFECT")
+        self.assertTrue(result["curve"]["within_tolerance"])
+        self.assertEqual(result["curve"]["sample_count"], 4)
+
     def test_feature_extractor_builds_one_ordered_technique_timeline(self) -> None:
         take = Take(
             lesson_id="lesson_test",
@@ -311,6 +380,7 @@ class LessonDomainTests(unittest.TestCase):
         self.assertEqual(len(steps), 2)
         self.assertEqual(steps[0]["reference_seconds"], 5.0)
         self.assertEqual(steps[0]["duration_seconds"], 1.5)
+        self.assertEqual(steps[0]["target_seconds"], 6.5)
         self.assertEqual(steps[0]["start_value"], 63)
         self.assertEqual(steps[0]["instruction"], "Cerrá LOW de Deck B")
         self.assertTrue(

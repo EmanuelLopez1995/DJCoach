@@ -9,7 +9,7 @@ from djcoach.domain import Take
 from djcoach.midi import format_loop_size
 
 
-FEATURE_SCHEMA_VERSION = 3
+FEATURE_SCHEMA_VERSION = 4
 GESTURE_GAP_SECONDS = 2.0
 TIMING_CONTROLS = {"phase", "beat_phase", "track_progress"}
 SELECTOR_CONTROLS = {"loop_size"}
@@ -55,6 +55,15 @@ def _gesture(events: list[dict[str, Any]]) -> dict[str, Any]:
         "delta": delta,
         "direction": direction,
         "event_count": len(events),
+        # Conserva el recorrido del profesor para evaluar un gesto sostenido
+        # como una curva tolerante, no sÃ³lo por su valor final.
+        "trajectory": [
+            {
+                "offset_seconds": round(_elapsed(event) - _elapsed(first), 3),
+                "value": int(event["value"]),
+            }
+            for event in events
+        ],
     }
 
 

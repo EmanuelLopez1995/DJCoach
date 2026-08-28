@@ -29,6 +29,7 @@ from .evaluation import evaluate_guided_attempt
 MISSED_AFTER_SECONDS = 3.0
 ON_TIME_TOLERANCE_SECONDS = 5.0
 EARLY_ACTION_WINDOW_SECONDS = 10.0
+CONTINUOUS_PREP_ALLOWANCE_SECONDS = 0.5
 
 
 def _timestamp_now() -> str:
@@ -117,6 +118,27 @@ class GuidedPracticeRecorder:
     def _outcome_ids(active: ActiveStudentAttempt) -> set[str]:
         return {str(outcome["step_id"]) for outcome in active.outcomes}
 
+    @staticmethod
+    def _step_target_seconds(step: dict[str, Any]) -> float:
+        return float(
+            step.get(
+                "target_seconds",
+                float(step["reference_seconds"])
+                + float(step.get("duration_seconds", 0.0)),
+            )
+        )
+
+    @staticmethod
+    def _step_can_match_at(step: dict[str, Any], student_seconds: float) -> bool:
+        """Evita que un valor de un gesto anterior complete uno futuro."""
+        duration = float(step.get("duration_seconds", 0.0))
+        if duration <= 0.0:
+            return True
+        return student_seconds >= (
+            float(step["reference_seconds"])
+            - CONTINUOUS_PREP_ALLOWANCE_SECONDS
+        )
+
     def _record_outcome(
         self,
         active: ActiveStudentAttempt,
@@ -145,12 +167,29 @@ class GuidedPracticeRecorder:
         """Cierra ventanas vencidas sin tocar el reloj de la lección."""
         outcome_ids = self._outcome_ids(active)
         for moment in active.moments:
-            if student_seconds <= float(moment["reference_seconds"]) + MISSED_AFTER_SECONDS:
-                continue
             for action in moment["actions"]:
+                deadline = (
+                    float(moment["reference_seconds"])
+                    + float(action.get("duration_seconds", 0.0))
+                    + MISSED_AFTER_SECONDS
+                )
+                if student_seconds <= deadline:
+                    continue
                 if action["id"] not in outcome_ids:
                     self._record_outcome(active, action, "missed")
                     outcome_ids.add(str(action["id"]))
+
+    @staticmethod
+    def _guidance_end_seconds(active: ActiveStudentAttempt) -> float:
+        return max(
+            float(moment["reference_seconds"])
+            + max(
+                float(action.get("duration_seconds", 0.0))
+                for action in moment["actions"]
+            )
+            + MISSED_AFTER_SECONDS
+            for moment in active.moments
+        )
 
     @staticmethod
     def _scheduled_moment_index(
@@ -197,20 +236,23 @@ class GuidedPracticeRecorder:
                 for step in active.steps
                 if step["id"] not in outcome_ids
                 and -EARLY_ACTION_WINDOW_SECONDS
-                <= student_seconds - float(step["reference_seconds"])
+                <= student_seconds - self._step_target_seconds(step)
                 <= MISSED_AFTER_SECONDS
+                and self._step_can_match_at(step, student_seconds)
                 and event_matches_step(event, step)
             ]
             # Si el mismo control aparece varias veces, asociamos el gesto al
             # momento musical más cercano, no al primer paso pendiente.
             matched_step = min(
                 candidates,
-                key=lambda step: abs(student_seconds - float(step["reference_seconds"])),
+                key=lambda step: abs(
+                    student_seconds - self._step_target_seconds(step)
+                ),
                 default=None,
             )
             if matched_step is not None:
                 delta = round(
-                    student_seconds - matched_step["reference_seconds"], 3
+                    student_seconds - self._step_target_seconds(matched_step), 3
                 )
                 if delta < -ON_TIME_TOLERANCE_SECONDS:
                     timing = "early"
@@ -259,7 +301,7 @@ class GuidedPracticeRecorder:
                 len(self._outcome_ids(active)) == len(active.steps)
                 or scheduled_index is None
                 or refreshed["student_seconds"]
-                > float(active.moments[-1]["reference_seconds"]) + MISSED_AFTER_SECONDS
+                > self._guidance_end_seconds(active)
             ):
                 state = "guidance_complete"
             elif active.anchor_elapsed_seconds is not None:
@@ -520,7 +562,11 @@ class GuidedPracticeRecorder:
                 ),
             }
             active.take.features["evaluation"] = evaluate_guided_attempt(
-                active.steps, active.outcomes, result["final_state"]
+                active.steps,
+                active.outcomes,
+                result["final_state"],
+                result["events"],
+                active.anchor_elapsed_seconds,
             )
             self.attempt_repository.save(active.take)
             self.active = None

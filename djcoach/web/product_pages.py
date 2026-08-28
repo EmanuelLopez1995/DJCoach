@@ -970,11 +970,15 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
     for moment in status.get("timeline", []):
         delta_beats = (float(moment["reference_seconds"]) - student_seconds) * bpm / 60.0
         visual_state = str(moment.get("visual_state", "pending"))
-        if delta_beats < -4.0 and visual_state not in {"current", "problem"}:
+        holding = bool(moment.get("holding"))
+        if (
+            delta_beats < -4.0
+            and visual_state not in {"current", "problem"}
+            and not holding
+        ):
             continue
         if delta_beats > 10.0:
             continue
-        holding = bool(moment.get("holding"))
         # La tarjeta sigue avanzando con la mÃºsica. Mientras el gesto estÃ¡ en
         # curso sÃ³lo evitamos que se atenÃºe: el punto de la cola muestra el
         # avance real de la perilla, no una card congelada sobre AHORA.
@@ -983,7 +987,7 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
         # vencidas quedaban congeladas al aplicarles un máximo de 95%.
         if raw_left > 95.0 and not holding:
             continue
-        left = max(7.0, min(95.0, raw_left))
+        left = max(7.0, raw_left) if holding else max(7.0, min(95.0, raw_left))
         stage = "now" if abs(delta_beats) <= 1.0 else "prepare" if delta_beats <= 4.0 else "far"
         # Cada fila representa una mano. No comprimimos dos movimientos
         # distintos en una tarjeta porque el alumno debe verlos como dos

@@ -106,6 +106,7 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
                     0.0, round(float(event.get("duration_seconds", 0.0)), 3)
                 ),
                 "start_value": int(event.get("start_value", event["end_value"])),
+                "trajectory": list(event.get("trajectory", [])),
             }
         elif event_type == "transport_change":
             if event.get("control") in {"loaded", "track_end"}:
@@ -160,6 +161,11 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
                 # prerrequisitos de recuperación.
                 "is_critical": str(step["control"]) in {"play", "loop_active"},
             }
+        )
+        step["target_seconds"] = round(
+            float(step["reference_seconds"])
+            + float(step.get("duration_seconds", 0.0)),
+            3,
         )
         steps.append(step)
     return steps

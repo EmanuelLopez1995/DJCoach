@@ -115,6 +115,11 @@ PRODUCT_CSS = """
 .rhythm-card{max-width:420px}
 /* Nota sostenida: cabeza fija y cola horizontal proporcional a su duración. */
 .rhythm-card.duration{transform:translateX(-50%);overflow:visible}.rhythm-hold{position:absolute;z-index:0;top:calc(50% - 44px);right:50%;width:var(--hold-width);height:88px;overflow:visible;opacity:.9}.rhythm-hold .trajectory-guide{fill:none;stroke:#526074;stroke-width:1;stroke-dasharray:3 4}.rhythm-hold .trajectory-path{fill:none;stroke:currentColor;stroke-width:5;filter:drop-shadow(0 0 5px currentColor)}.rhythm-hold .trajectory-point{fill:#f7fbff;stroke:currentColor;stroke-width:2}.rhythm-card-start{position:absolute;z-index:3;top:-23px;left:50%;display:grid;justify-items:center;gap:2px;transform:translateX(-50%);pointer-events:none}.rhythm-card-start i{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;background:#08111b;box-shadow:0 0 10px currentColor}.rhythm-card-start em{color:#f3f7fb;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.1em;text-shadow:0 1px 3px #000}.rhythm-card.duration .rhythm-card-actions,.rhythm-card.duration .rhythm-card-duration{position:relative;z-index:1}.rhythm-card.deck-a .rhythm-hold,.rhythm-card.deck-a .rhythm-card-start{color:#36d7ff}.rhythm-card.deck-b .rhythm-hold,.rhythm-card.deck-b .rhythm-card-start{color:#ff4fd8}.rhythm-card.mixer .rhythm-hold,.rhythm-card.mixer .rhythm-card-start{color:#ffb648}.result-overview{display:grid;grid-template-columns:200px 1fr;gap:14px;margin:18px 0}.result-primary-score,.result-metrics,.result-recommendations,.result-history{padding:16px;border:1px solid #293647;border-radius:14px;background:#0b121c}.result-primary-score{display:grid;place-items:center;text-align:center}.result-primary-score .result-score{line-height:1}.result-primary-score>div{color:#8fa0b5;font-size:9px;font-weight:900;letter-spacing:.1em}.result-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.result-metrics div{padding:12px;border-radius:10px;background:#101924}.result-metrics span{display:block;color:#8293a9;font-size:9px;font-weight:900;letter-spacing:.11em}.result-metrics strong{display:block;margin-top:6px;color:#f5f8fc;font-size:20px}.result-recommendations{display:grid;gap:8px;margin:12px 0}.result-section-title{color:#8ddfff;font-size:10px;font-weight:950;letter-spacing:.13em}.result-recommendation{padding:10px 12px;border-left:3px solid #ffbd59;border-radius:7px;background:#17130d;color:#dfd1ad;font-size:13px}.result-row{grid-template-columns:34px 1fr auto}.result-row.success{border-color:#276c4e}.result-row.warning{border-color:#715525}.result-row.problem{border-color:#75363a}.result-row-feedback{margin-top:3px;color:#91a1b5;font-size:11px}.result-verdict{font-size:11px;font-weight:950;letter-spacing:.08em}.result-verdict.success{color:#58e5a3}.result-verdict.warning{color:#ffbd59}.result-verdict.problem{color:#ff7670}.result-history{display:grid;gap:7px;margin-top:16px;color:#aebdce;font-size:12px}@media(max-width:700px){.result-overview{grid-template-columns:1fr}.result-metrics{grid-template-columns:1fr}.result-row{grid-template-columns:28px 1fr}.result-verdict{grid-column:2}}
+/* The duration tails use container units so they match the beat scale. */
+.rhythm-lane { container-type: inline-size; }
+.rhythm-card.holding { z-index:5; opacity:1 !important; border-color:#f8fbff; background:#1c1830; box-shadow:0 0 28px #ff4fd899; }
+.rhythm-card.holding .rhythm-hold { opacity:1; }
+.rhythm-hold .trajectory-live { fill:#fff; stroke:currentColor; stroke-width:3; filter:drop-shadow(0 0 6px currentColor); }
 """
 
 
@@ -831,18 +836,19 @@ def _rhythm_card_color(moment: dict[str, Any]) -> str:
     return "mixer"
 
 
-def _rhythm_gesture_duration(action: dict[str, Any], bpm: float) -> tuple[float, int]:
+def _rhythm_gesture_duration(action: dict[str, Any], bpm: float) -> float:
     """Duración de una tarjeta: sólo los gestos continuos ocupan tiempo."""
     seconds = max(0.0, float(action.get("duration_seconds", 0.0)))
     beats = seconds * bpm / 60.0
     # 118 px es una acción puntual. Un beat adicional agrega espacio
     # deliberadamente visible: la longitud debe comunicar velocidad de un
     # vistazo, no ser una diferencia de apenas unos píxeles.
-    width = min(420, round(112 + beats * 48))
-    return beats, width
+    return beats
 
 
-def _rhythm_hold_trajectory(action: dict[str, Any], width: int) -> str:
+def _rhythm_hold_trajectory(
+    action: dict[str, Any], duration_beats: float, live_value: int | None = None
+) -> str:
     """Nota sostenida: la card es inicio y la cola apunta al objetivo."""
     start = int(action.get("start_value", action.get("target_value", 63)))
     target = int(action.get("target_value", start))
@@ -855,8 +861,19 @@ def _rhythm_hold_trajectory(action: dict[str, Any], width: int) -> str:
 
     start_y = y_position(start_percent)
     target_y = y_position(target_percent)
+    live_marker = ""
+    if live_value is not None and target != start:
+        completion = (int(live_value) - start) / (target - start)
+        completion = max(0.0, min(1.0, completion))
+        live_percent = round(max(0, min(127, int(live_value))) / 127 * 100)
+        live_marker = (
+            '<circle class="trajectory-live" '
+            f'cx="{100 - completion * 100:.1f}" '
+            f'cy="{y_position(live_percent)}" r="5" />'
+        )
     return (
-        f'<svg class="rhythm-hold trajectory" style="--hold-width:{width}px" '
+        f'<svg class="rhythm-hold trajectory" '
+        f'style="--hold-width:{duration_beats * 5.5:.3f}cqw" '
         'viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
         '<path class="trajectory-guide" d="M0 50 H100" />'
         # El extremo derecho toca la card: es el valor con el que se empieza.
@@ -864,6 +881,7 @@ def _rhythm_hold_trajectory(action: dict[str, Any], width: int) -> str:
         f'<path class="trajectory-path" d="M0 {target_y} L100 {start_y}" />'
         f'<circle class="trajectory-point" cx="0" cy="{target_y}" r="4" />'
         f'<circle class="trajectory-point" cx="100" cy="{start_y}" r="4" />'
+        f'{live_marker}'
         '</svg>'
     )
 
@@ -956,6 +974,10 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
             continue
         if delta_beats > 10.0:
             continue
+        holding = bool(moment.get("holding"))
+        # La tarjeta sigue avanzando con la mÃºsica. Mientras el gesto estÃ¡ en
+        # curso sÃ³lo evitamos que se atenÃºe: el punto de la cola muestra el
+        # avance real de la perilla, no una card congelada sobre AHORA.
         left = max(7.0, min(95.0, 62.0 - delta_beats * 5.5))
         stage = "now" if abs(delta_beats) <= 1.0 else "prepare" if delta_beats <= 4.0 else "far"
         # Cada fila representa una mano. No comprimimos dos movimientos
@@ -966,20 +988,34 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
             # las tarjetas grandes deben conservar aire entre sí.
             top = 30 + lane * 124
             action_color = _rhythm_card_color({"actions": [action]})
-            duration_beats, hold_width = _rhythm_gesture_duration(action, bpm)
+            duration_beats = _rhythm_gesture_duration(action, bpm)
             duration_html = ""
             duration_class = ""
             if duration_beats >= 0.05:
                 duration_class = " duration"
+                live_value = _rhythm_live_midi(action, status)
+                holding_detail = ""
+                if holding:
+                    live_percent = (
+                        round(live_value / 127 * 100)
+                        if live_value is not None
+                        else None
+                    )
+                    holding_detail = (
+                        f' · EN CURSO {live_percent}%'
+                        if live_percent is not None
+                        else " · EN CURSO"
+                    )
                 duration_html = (
-                    f'{_rhythm_hold_trajectory(action, hold_width)}'
+                    f'{_rhythm_hold_trajectory(action, duration_beats, live_value)}'
                     '<span class="rhythm-card-duration"><i></i>'
                     f'<em>{duration_beats:.1f} BEATS · '
                     f'{round(int(action.get("start_value", action.get("target_value", 63))) / 127 * 100)}% '
-                    f'→ {round(int(action.get("target_value", 63)) / 127 * 100)}%</em></span>'
+                    f'→ {round(int(action.get("target_value", 63)) / 127 * 100)}%'
+                    f'{holding_detail}</em></span>'
                 )
             cards.append(
-                f'<article class="rhythm-card{duration_class} {action_color} status-{escape(visual_state)} {stage}" '
+                f'<article class="rhythm-card{duration_class}{" holding" if holding else ""} {action_color} status-{escape(visual_state)} {stage}" '
                 f'style="left:{left:.1f}%;top:{top}px">'
                 '<span class="rhythm-card-start"><i></i><em>INICIO</em></span>'
                 f'<div class="rhythm-card-actions"><span class="rhythm-action">'

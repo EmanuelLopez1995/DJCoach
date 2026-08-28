@@ -10,7 +10,10 @@ from djcoach.midi import format_loop_size
 GUIDANCE_SCHEMA_VERSION = 4
 GESTURE_MINIMUM_CHANGE = 8
 VALUE_TOLERANCE = 12
-SIMULTANEOUS_WINDOW_SECONDS = 2.5
+# Dos controles se presentan juntos sólo si el profesor los empezó casi al
+# mismo tiempo. Una ventana amplia (por ejemplo 2.5 s) terminaba llamando
+# "simultáneo" a dos pasos consecutivos de una misma mezcla.
+SIMULTANEOUS_START_WINDOW_SECONDS = 0.35
 
 CONTROL_NAMES = {
     "low": "LOW",
@@ -164,9 +167,9 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
 
 def build_guidance_moments(
     steps: list[dict[str, Any]],
-    window_seconds: float = SIMULTANEOUS_WINDOW_SECONDS,
+    window_seconds: float = SIMULTANEOUS_START_WINDOW_SECONDS,
 ) -> list[dict[str, Any]]:
-    """Agrupa acciones cercanas sin crear relojes independientes por deck."""
+    """Agrupa exclusivamente acciones iniciadas en el mismo instante musical."""
     moments: list[dict[str, Any]] = []
     for step in sorted(steps, key=lambda item: item["reference_seconds"]):
         if (

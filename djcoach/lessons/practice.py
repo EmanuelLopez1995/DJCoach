@@ -307,6 +307,17 @@ class GuidedPracticeRecorder:
             timeline = []
             for index, moment in enumerate(active.moments):
                 shown = present(moment)
+                moment_duration = max(
+                    float(action.get("duration_seconds", 0.0))
+                    for action in moment["actions"]
+                )
+                moment_started_at = float(moment["reference_seconds"])
+                holding = (
+                    moment_duration > 0.05
+                    and moment_started_at
+                    <= refreshed["student_seconds"]
+                    < moment_started_at + moment_duration
+                )
                 moment_outcomes = [
                     outcomes_by_id.get(action["id"])
                     for action in moment["actions"]
@@ -324,7 +335,22 @@ class GuidedPracticeRecorder:
                     visual_state = "past"
                 else:
                     visual_state = "pending"
-                timeline.append({**shown, "visual_state": visual_state})
+                timeline.append(
+                    {
+                        **shown,
+                        "visual_state": visual_state,
+                        "holding": holding,
+                        "hold_progress": (
+                            round(
+                                (refreshed["student_seconds"] - moment_started_at)
+                                / moment_duration,
+                                3,
+                            )
+                            if holding
+                            else None
+                        ),
+                    }
+                )
 
             final_state = refreshed["capture"].get("final_state", {})
             rhythm = final_state.get("deck_tempos", {}).get("a", {})

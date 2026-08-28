@@ -293,8 +293,8 @@ class LessonDomainTests(unittest.TestCase):
             )
         )
         moments = build_guidance_moments(steps)
-        self.assertEqual(len(moments), 1)
-        self.assertEqual(len(moments[0]["actions"]), 2)
+        self.assertEqual(len(moments), 2)
+        self.assertEqual(len(moments[0]["actions"]), 1)
 
     def test_loop_size_is_attached_to_activation_and_guidance(self) -> None:
         take = Take(
@@ -505,7 +505,7 @@ class LessonDomainTests(unittest.TestCase):
                         "section": "deck_b",
                         "control": "play",
                         "active": True,
-                        "elapsed_seconds": 12.0,
+                        "elapsed_seconds": 10.2,
                     },
                 ]
             }

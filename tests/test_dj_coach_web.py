@@ -34,7 +34,7 @@ class WebDashboardTests(unittest.TestCase):
                 {
                     "id": "step_002",
                     "section": "mixer",
-                    "reference_seconds": 12.0,
+                    "reference_seconds": 11.4,
                     "instruction": "Llevá el CROSSFADER hacia Deck B",
                 },
             ]
@@ -170,7 +170,7 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("rhythm-card-duration", lane)
         self.assertIn("3.0 BEATS", lane)
         self.assertIn("rhythm-hold", lane)
-        self.assertIn("--hold-width:256px", lane)
+        self.assertIn("--hold-width:16.500cqw", lane)
         self.assertIn('d="M0 85 L100 50"', lane)
         self.assertEqual(3, lane.count('class="rhythm-card '))
         self.assertIn("top:154px", lane)
@@ -180,6 +180,40 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("AHORA", action_panels)
         self.assertIn("PREPARATE", action_panels)
         self.assertIn("PENDIENTES / MISSED", action_panels)
+
+    def test_rhythm_holding_gesture_stays_at_now_with_live_marker(self) -> None:
+        status = {
+            "state": "guiding",
+            "student_seconds": 9.0,
+            "musical_context": {"bpm": 120.0},
+            "timeline": [
+                {
+                    "reference_seconds": 8.0,
+                    "holding": True,
+                    "visual_state": "past",
+                    "actions": [
+                        {
+                            "section": "deck_b",
+                            "control": "low",
+                            "instruction": "CerrÃ¡ LOW de Deck B",
+                            "start_value": 63,
+                            "target_value": 0,
+                            "duration_seconds": 2.0,
+                        }
+                    ],
+                }
+            ],
+            "mixer_state": {
+                "deck_b": {"low": {"received": True, "midi": 32}}
+            },
+        }
+
+        lane = render_rhythm_lane(status)
+
+        self.assertIn("rhythm-card duration holding", lane)
+        self.assertIn("left:73.0%", lane)
+        self.assertIn("trajectory-live", lane)
+        self.assertIn("EN CURSO 25%", lane)
 
     def test_visual_mixer_uses_live_midi_and_teacher_ghost(self) -> None:
         def continuous(midi: int) -> dict:

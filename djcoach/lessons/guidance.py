@@ -7,7 +7,7 @@ from typing import Any
 from djcoach.midi import format_loop_size
 
 
-GUIDANCE_SCHEMA_VERSION = 3
+GUIDANCE_SCHEMA_VERSION = 4
 GESTURE_MINIMUM_CHANGE = 8
 VALUE_TOLERANCE = 12
 SIMULTANEOUS_WINDOW_SECONDS = 2.5
@@ -97,6 +97,12 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
                 "control": event["control"],
                 "target_value": int(event["end_value"]),
                 "instruction": _gesture_instruction(event),
+                # La duración viene de los mensajes MIDI reales del profesor:
+                # permite enseñar un gesto progresivo, no sólo su destino.
+                "duration_seconds": max(
+                    0.0, round(float(event.get("duration_seconds", 0.0)), 3)
+                ),
+                "start_value": int(event.get("start_value", event["end_value"])),
             }
         elif event_type == "transport_change":
             if event.get("control") in {"loaded", "track_end"}:
@@ -124,6 +130,7 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
                 "control": event["control"],
                 "target_active": active,
                 "instruction": instruction,
+                "duration_seconds": 0.0,
             }
         elif event_type == "selector_change":
             target = int(event["value"])
@@ -136,6 +143,7 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
                     f"Seleccioná un LOOP de {format_loop_size(target)} "
                     f"en {_deck_name(str(event['section']))}"
                 ),
+                "duration_seconds": 0.0,
             }
         else:
             continue
@@ -144,6 +152,10 @@ def build_guidance_steps(features: dict[str, Any]) -> list[dict[str, Any]]:
                 "id": f"step_{len(steps) + 1:03d}",
                 "order": len(steps) + 1,
                 "reference_seconds": round(event_time - anchor_time, 3),
+                # No altera el flujo actual: sólo deja preparado el dato para
+                # que una futura versión pueda tratar PLAY/LOOP como
+                # prerrequisitos de recuperación.
+                "is_critical": str(step["control"]) in {"play", "loop_active"},
             }
         )
         steps.append(step)
@@ -173,10 +185,15 @@ def build_guidance_moments(
                     "order": len(moments) + 1,
                     "reference_seconds": step["reference_seconds"],
                     "actions": [step],
+                    "duration_seconds": float(step.get("duration_seconds", 0.0)),
                 }
             )
         else:
             moments[-1]["actions"].append(step)
+            moments[-1]["duration_seconds"] = max(
+                float(moments[-1].get("duration_seconds", 0.0)),
+                float(step.get("duration_seconds", 0.0)),
+            )
     return moments
 
 

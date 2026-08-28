@@ -12,6 +12,7 @@ from djcoach.web.product_pages import (
     render_lesson_plan,
     render_mixer_calibration,
     render_rhythm_feedback,
+    render_rhythm_action_panels,
     render_rhythm_header,
     render_rhythm_lane,
     render_rhythm_next,
@@ -101,6 +102,9 @@ class WebDashboardTests(unittest.TestCase):
                     "section": "deck_b",
                     "control": "low",
                     "instruction": "Cerrá LOW de Deck B",
+                    "duration_seconds": 1.5,
+                    "start_value": 63,
+                    "target_value": 0,
                 }
             ],
         }
@@ -148,6 +152,13 @@ class WebDashboardTests(unittest.TestCase):
         lane = render_rhythm_lane(status)
         upcoming = render_rhythm_next(status)
         feedback = render_rhythm_feedback(status)
+        action_panels = render_rhythm_action_panels({
+            **status,
+            "after_next": following,
+            "missed": [
+                {"section": "deck_b", "control": "cue", "target_active": False}
+            ],
+        })
 
         self.assertIn("Bass Swap", header)
         self.assertIn("EQ PREP", header)
@@ -155,11 +166,19 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("rhythm-now", lane)
         self.assertIn("8 BEATS", lane)
         self.assertIn("B LOW ↓", lane)
+        self.assertIn("rhythm-card-duration", lane)
+        self.assertIn("3.0 BEATS", lane)
+        self.assertIn("rhythm-hold", lane)
+        self.assertIn("--hold-width:256px", lane)
+        self.assertIn('d="M0 85 L100 50"', lane)
         self.assertEqual(3, lane.count('class="rhythm-card '))
-        self.assertIn("top:106px", lane)
+        self.assertIn("top:154px", lane)
         self.assertIn("BASS SWAP", upcoming)
         self.assertIn("PERFECT", feedback)
         self.assertIn("x2 COMBO", feedback)
+        self.assertIn("AHORA", action_panels)
+        self.assertIn("PREPARATE", action_panels)
+        self.assertIn("PENDIENTES / MISSED", action_panels)
 
     def test_visual_mixer_uses_live_midi_and_teacher_ghost(self) -> None:
         def continuous(midi: int) -> dict:

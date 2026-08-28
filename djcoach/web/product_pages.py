@@ -108,7 +108,12 @@ PRODUCT_CSS = """
 @media(max-width:620px){.visual-deck{padding:13px}.visual-knobs{grid-template-columns:repeat(3,1fr)}.coach-knob-control{padding:7px 3px}.coach-knob-face{width:58px;height:58px}.coach-knob-student span{height:21px}.visual-deck-lower{grid-template-columns:78px 1fr}.coach-fader{height:125px}.coach-button-grid{gap:7px}.coach-mixer-button{min-height:50px;font-size:10px}}
 @media(max-width:520px){.coach-context{grid-template-columns:1fr 1fr}.context-cell{min-width:0;min-height:58px;padding:8px 10px}.context-cell strong{font-size:14px}.coach-now{padding:22px 14px}.guided-shell{padding:11px}.coach-layout{gap:12px}.visual-mixer{padding:10px;margin-left:-4px;margin-right:-4px}.coach-focus-action{grid-template-columns:48px 1fr;padding:12px}.coach-focus-icon{width:44px;height:44px}.coach-focus-copy strong{font-size:17px}}
 .rhythm-shell{display:grid!important;grid-template-rows:auto auto minmax(230px,1fr) auto auto!important;gap:10px!important;min-height:0!important;height:auto!important;max-height:none!important;padding:14px!important;overflow:visible!important;background:radial-gradient(circle at 50% 100%,#df31cc18,transparent 34%),linear-gradient(155deg,#0c1420,#080d15)!important}.rhythm-header{display:grid;grid-template-columns:minmax(200px,1.7fr) repeat(3,minmax(92px,.7fr)) auto;gap:10px;align-items:center;padding:10px 14px;border:1px solid #293647;border-radius:13px;background:#0a1018}.rhythm-meta{display:grid;gap:3px;min-width:0}.rhythm-meta span{color:#8494a8;font-size:9px;font-weight:900;letter-spacing:.12em}.rhythm-meta strong{overflow:hidden;color:#f5f8fc;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.rhythm-meta.phase strong{color:#ff75df}.rhythm-exit{justify-self:end;color:#d88cff;font-size:11px;font-weight:800}.rhythm-phases{display:grid;grid-template-columns:repeat(6,1fr);gap:0;padding:0 18px}.rhythm-phase{position:relative;display:grid;justify-items:center;gap:4px;color:#718095;font-size:10px;font-weight:800;text-align:center}.rhythm-phase:not(:last-child)::after{position:absolute;top:12px;left:calc(50% + 16px);right:calc(-50% + 16px);height:2px;background:#344152;content:""}.rhythm-phase-dot{z-index:1;display:grid;place-items:center;width:24px;height:24px;border:1px solid #536176;border-radius:50%;background:#101722;font-size:11px}.rhythm-phase.completed{color:#67eaa8}.rhythm-phase.completed .rhythm-phase-dot{border-color:#57d999;background:#123526}.rhythm-phase.completed:not(:last-child)::after{background:#57d999}.rhythm-phase.current{color:#ff8ae5}.rhythm-phase.current .rhythm-phase-dot{border-color:#ff4fd8;background:#46163f;box-shadow:0 0 18px #ff4fd899}.rhythm-stage{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:10px;min-height:0}.rhythm-lane{position:relative;min-height:230px;overflow:hidden;border:1px solid #2a384a;border-radius:14px;background:linear-gradient(180deg,#0b121c,#090d14)}.rhythm-lane::before{position:absolute;inset:50% 0 auto;height:1px;background:#334052;content:""}.rhythm-now{position:absolute;z-index:3;top:0;bottom:34px;left:62%;width:2px;background:#ff75df;box-shadow:0 0 14px #ff4fd8}.rhythm-now::before,.rhythm-now::after{position:absolute;left:50%;transform:translateX(-50%);color:#ff83e4;font-size:10px;font-weight:950;letter-spacing:.12em}.rhythm-now::before{top:-4px;content:"AHORA";transform:translate(-50%,-100%)}.rhythm-now::after{bottom:-22px;content:"AHORA"}.rhythm-now i{position:absolute;top:47%;left:-5px;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 16px #fff}.rhythm-card{position:absolute;z-index:2;top:29px;display:grid;gap:5px;min-width:92px;max-width:148px;padding:9px 11px;border:1px solid #375069;border-radius:8px;background:#121c28;box-shadow:0 8px 18px #0008;transform:translateX(-50%);transition:left .12s linear}.rhythm-card.current{border-color:#ff4fd8;background:#30152f;box-shadow:0 0 20px #ff4fd855}.rhythm-card.completed{opacity:.45}.rhythm-card.problem{border-color:#ffbd59}.rhythm-card-title{color:#f1f5f9;font-size:11px;font-weight:900;white-space:nowrap}.rhythm-card-actions{display:flex;flex-wrap:wrap;gap:4px}.rhythm-action{color:#a8b7c8;font-size:9px;font-weight:800;white-space:nowrap}.rhythm-card.current .rhythm-action{color:#ffc5f5}.rhythm-scale{position:absolute;right:7%;bottom:9px;left:7%;display:flex;justify-content:space-between;color:#8492a5;font-family:monospace;font-size:10px;font-weight:800}.rhythm-scale strong{color:#ff75df}.rhythm-wait{position:absolute;inset:0;display:grid;place-items:center;color:#acb9c9;font-size:15px;font-weight:800}.rhythm-next{padding:16px;border:1px solid #2b394b;border-radius:14px;background:#0b121c}.rhythm-next small{display:block;margin-bottom:8px;color:#93a3b8;font-size:9px;font-weight:900;letter-spacing:.13em}.rhythm-next-time{margin-bottom:6px;color:#ffbd59;font-size:12px;font-weight:900}.rhythm-next h3{margin:0 0 10px;color:#fff;font-size:17px}.rhythm-next-action{display:block;padding:5px 0;border-top:1px solid #1f2b39;color:#b9c7d6;font-size:11px;font-weight:800}.rhythm-feedback{display:flex;align-items:center;gap:14px;min-height:55px;padding:10px 16px;border:1px solid #293647;border-radius:13px;background:#0b121c}.rhythm-verdict{min-width:120px;color:#8ea0b4;font-size:22px;font-style:italic;font-weight:950;letter-spacing:.05em}.rhythm-verdict.success{color:#69eaa8}.rhythm-verdict.warning{color:#ffbd59}.rhythm-verdict.problem{color:#ff7670}.rhythm-feedback-detail{color:#aebdce;font-size:12px;font-weight:700}.rhythm-combo{margin-left:auto;color:#ff75df;font-size:14px;font-weight:950}.rhythm-controls{display:flex;justify-content:space-between;align-items:center;gap:12px}.rhythm-controls .practice-progress{font-size:11px}@media(max-width:900px){.rhythm-header{grid-template-columns:1fr 1fr}.rhythm-stage{grid-template-columns:1fr}.rhythm-next{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:center}.rhythm-next small,.rhythm-next-time,.rhythm-next h3{margin:0}.rhythm-phases{padding:0}.rhythm-phase{font-size:8px}.rhythm-card{max-width:118px}.rhythm-feedback{flex-wrap:wrap}}@media(max-width:620px){.rhythm-phases{grid-template-columns:repeat(3,1fr);gap:8px}.rhythm-phase:not(:last-child)::after{display:none}.rhythm-lane{min-height:250px}.rhythm-stage{gap:8px}.rhythm-next{grid-template-columns:1fr}.rhythm-card{min-width:76px;padding:7px}.rhythm-header{padding:10px}.rhythm-now{left:66%}}
-.rhythm-card{min-width:64px;max-width:126px;padding:8px 10px}.rhythm-card.far{opacity:.42}.rhythm-card.status-completed{opacity:.3}.rhythm-card.status-problem{border-color:#ff7670}.rhythm-card.prepare{border-color:#ffbd59;background:#2b2211;box-shadow:0 0 16px #ffbd593d}.rhythm-card.now{border-color:#ff4fd8;background:#381333;box-shadow:0 0 22px #ff4fd877;transition:none}.rhythm-card.deck-a{border-left:3px solid #36d7ff}.rhythm-card.deck-b{border-left:3px solid #ff4fd8}.rhythm-card.mixer{border-left:3px solid #ffb648}.rhythm-card-actions{justify-content:center}.rhythm-action{color:#edf3fa;font-size:11px;letter-spacing:.03em}.rhythm-card.deck-a .rhythm-action{color:#76e8ff}.rhythm-card.deck-b .rhythm-action{color:#ff9eea}.rhythm-card.mixer .rhythm-action{color:#ffd27b}.rhythm-technique{color:#fff;font-size:9px;font-weight:950;letter-spacing:.12em;text-align:center}.rhythm-lane{min-height:330px}.rhythm-now-focus{position:absolute;z-index:4;top:196px;left:62%;display:grid;justify-items:center;gap:2px;min-width:170px;padding:8px 12px;border:1px solid #ffbd59;border-radius:9px;background:#17150fdd;transform:translateX(-50%);text-align:center}.rhythm-now-focus span{color:#ffbd59;font-size:9px;font-weight:950;letter-spacing:.14em}.rhythm-now-focus strong{color:#fff;font-size:18px;line-height:1.1}.rhythm-now-focus em{color:#f7ca78;font-size:10px;font-style:normal;font-weight:800}.rhythm-now-focus.now{border-color:#ff4fd8;background:#33102fe8;box-shadow:0 0 25px #ff4fd877}.rhythm-now-focus.now span,.rhythm-now-focus.now em{color:#ff9bea}.rhythm-now-focus.now strong{font-size:21px}.rhythm-next h3{color:#fff;font-size:20px}.rhythm-next-action{color:#ffb5ec;font-size:13px}@media(max-width:620px){.rhythm-lane{min-height:350px}.rhythm-now-focus{top:205px;left:66%;min-width:130px}.rhythm-now-focus strong{font-size:14px}}
+.rhythm-card{min-width:64px;max-width:126px;padding:8px 10px}.rhythm-card.far{opacity:.42}.rhythm-card.status-completed{opacity:.3}.rhythm-card.status-problem{border-color:#ff7670}.rhythm-card.status-past{opacity:.22}.rhythm-card.prepare{border-color:#ffbd59;background:#2b2211;box-shadow:0 0 16px #ffbd593d}.rhythm-card.now{border-color:#ff4fd8;background:#381333;box-shadow:0 0 22px #ff4fd877;transition:none}.rhythm-card.deck-a{border-left:3px solid #36d7ff}.rhythm-card.deck-b{border-left:3px solid #ff4fd8}.rhythm-card.mixer{border-left:3px solid #ffb648}.rhythm-card-actions{justify-content:center}.rhythm-action{color:#edf3fa;font-size:11px;letter-spacing:.03em}.rhythm-card.deck-a .rhythm-action{color:#76e8ff}.rhythm-card.deck-b .rhythm-action{color:#ff9eea}.rhythm-card.mixer .rhythm-action{color:#ffd27b}.rhythm-technique{color:#fff;font-size:9px;font-weight:950;letter-spacing:.12em;text-align:center}.rhythm-lane{min-height:216px}.rhythm-stage{display:grid;grid-template-columns:1fr;gap:12px}.rhythm-action-panels{display:grid;grid-template-columns:1.35fr 1fr 1fr .9fr;gap:10px}.rhythm-level,.rhythm-missed{display:grid;align-content:center;min-height:124px;padding:16px;border:1px solid #2b394b;border-radius:13px;background:#0b121c}.rhythm-level small,.rhythm-missed small{color:#96a6bb;font-size:9px;font-weight:950;letter-spacing:.13em}.rhythm-level strong{margin:8px 0;color:#f5f7fb;font-size:17px;line-height:1.12}.rhythm-level em{color:#a7b7ca;font-size:11px;font-style:normal;font-weight:800}.rhythm-level.now{border-color:#ff4fd8;background:radial-gradient(circle at 50% 0,#70225f66,transparent 68%),#170e19;box-shadow:0 0 23px #ff4fd838}.rhythm-level.now small,.rhythm-level.now em{color:#ff9bea}.rhythm-level.now strong{font-size:22px}.rhythm-level.prepare{border-color:#a663d1;background:#171121}.rhythm-level.prepare small{color:#d090ff}.rhythm-level.prepare em{color:#dcb1ff}.rhythm-level.after{opacity:.82}.rhythm-level.deck-a{border-left:3px solid #36d7ff}.rhythm-level.deck-b{border-left:3px solid #ff4fd8}.rhythm-level.mixer{border-left:3px solid #ffb648}.rhythm-level.empty{opacity:.55}.rhythm-action-panels.waiting{grid-template-columns:1fr}.rhythm-action-panels.waiting>div{display:grid;gap:7px;place-items:center;min-height:110px;padding:18px;border:1px dashed #44566d;border-radius:13px;background:#0b121c;text-align:center}.rhythm-action-panels.waiting small{color:#8ca0b7;font-size:10px;font-weight:900;letter-spacing:.12em}.rhythm-action-panels.waiting strong{color:#f2f6fb;font-size:20px}.rhythm-action-panels.waiting em{color:#9daec1;font-size:12px;font-style:normal}.rhythm-missed{align-content:start;border-color:#61333b;background:#150e14}.rhythm-missed ul{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}.rhythm-missed li{display:grid;grid-template-columns:15px 1fr auto;gap:5px;align-items:center;color:#ffb3ad;font-size:10px;font-weight:800}.rhythm-missed li span,.rhythm-missed li em{color:#ff7670;font-style:normal;font-size:9px;font-weight:950}.rhythm-missed li.clear{display:block;color:#8ea1b6}.rhythm-next{display:none}@media(max-width:1000px){.rhythm-action-panels{grid-template-columns:repeat(3,1fr)}.rhythm-missed{grid-column:1/-1;min-height:auto}.rhythm-missed ul{grid-template-columns:repeat(3,1fr)}}@media(max-width:620px){.rhythm-lane{min-height:250px}.rhythm-action-panels{grid-template-columns:1fr}.rhythm-missed{grid-column:auto}.rhythm-missed ul{grid-template-columns:1fr}}
+/* Legibilidad de la coreografía móvil: los tokens se leen de reojo. */
+.rhythm-lane{min-height:310px}.rhythm-card{min-width:118px;max-width:290px;padding:14px 18px;border-radius:11px}.rhythm-card.duration{transform:translateX(-100%);padding-bottom:11px}.rhythm-card.deck-a{border-left-width:4px}.rhythm-card.deck-b{border-left-width:4px}.rhythm-card.mixer{border-left-width:4px}.rhythm-action{font-size:15px;font-weight:950;letter-spacing:.04em}.rhythm-card-duration{display:flex;align-items:center;gap:7px;margin-top:9px}.rhythm-card-duration i{height:4px;flex:1;border-radius:999px;background:currentColor;box-shadow:0 0 8px currentColor}.rhythm-card-duration em{color:#b8c6d6;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.08em;white-space:nowrap}.rhythm-card.deck-a .rhythm-card-duration{color:#36d7ff}.rhythm-card.deck-b .rhythm-card-duration{color:#ff4fd8}.rhythm-card.mixer .rhythm-card-duration{color:#ffb648}.rhythm-prepare-progress{position:relative;height:19px;margin-top:10px;overflow:hidden;border:1px solid #765294;border-radius:999px;background:#0b0d16}.rhythm-prepare-progress i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8b5cf6,#ffbd59);box-shadow:0 0 12px #c46eff;transition:width .1s linear}.rhythm-prepare-progress span{position:relative;z-index:1;display:grid;height:100%;place-items:center;color:#fff;font-size:9px;font-weight:950;letter-spacing:.08em;text-shadow:0 1px 3px #000}@media(max-width:620px){.rhythm-lane{min-height:310px}.rhythm-card{min-width:88px;max-width:180px;padding:10px}.rhythm-action{font-size:12px}}
+.rhythm-card{max-width:420px}
+/* Nota sostenida: cabeza fija y cola horizontal proporcional a su duración. */
+.rhythm-card.duration{transform:translateX(-50%);overflow:visible}.rhythm-hold{position:absolute;z-index:0;top:calc(50% - 44px);right:calc(100% - 10px);width:var(--hold-width);height:88px;overflow:visible;opacity:.9}.rhythm-hold .trajectory-guide{fill:none;stroke:#526074;stroke-width:1;stroke-dasharray:3 4}.rhythm-hold .trajectory-path{fill:none;stroke:currentColor;stroke-width:5;filter:drop-shadow(0 0 5px currentColor)}.rhythm-hold .trajectory-point{fill:#f7fbff;stroke:currentColor;stroke-width:2}.rhythm-card.duration .rhythm-card-actions,.rhythm-card.duration .rhythm-card-duration{position:relative;z-index:1}.rhythm-card.deck-a .rhythm-hold{color:#36d7ff}.rhythm-card.deck-b .rhythm-hold{color:#ff4fd8}.rhythm-card.mixer .rhythm-hold{color:#ffb648}
 """
 
 
@@ -825,6 +830,43 @@ def _rhythm_card_color(moment: dict[str, Any]) -> str:
     return "mixer"
 
 
+def _rhythm_gesture_duration(action: dict[str, Any], bpm: float) -> tuple[float, int]:
+    """Duración de una tarjeta: sólo los gestos continuos ocupan tiempo."""
+    seconds = max(0.0, float(action.get("duration_seconds", 0.0)))
+    beats = seconds * bpm / 60.0
+    # 118 px es una acción puntual. Un beat adicional agrega espacio
+    # deliberadamente visible: la longitud debe comunicar velocidad de un
+    # vistazo, no ser una diferencia de apenas unos píxeles.
+    width = min(420, round(112 + beats * 48))
+    return beats, width
+
+
+def _rhythm_hold_trajectory(action: dict[str, Any], width: int) -> str:
+    """Nota sostenida: la card es inicio y la cola apunta al objetivo."""
+    start = int(action.get("start_value", action.get("target_value", 63)))
+    target = int(action.get("target_value", start))
+    start_percent = round(max(0, min(127, start)) / 127 * 100)
+    target_percent = round(max(0, min(127, target)) / 127 * 100)
+
+    def y_position(percent: int) -> int:
+        # 50% se ubica en el centro; 0% cae abajo y 100% sube.
+        return round(85 - percent * 0.7)
+
+    start_y = y_position(start_percent)
+    target_y = y_position(target_percent)
+    return (
+        f'<svg class="rhythm-hold trajectory" style="--hold-width:{width}px" '
+        'viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+        '<path class="trajectory-guide" d="M0 50 H100" />'
+        # El extremo derecho toca la card: es el valor con el que se empieza.
+        # Hacia la izquierda avanza la cola hasta el objetivo del profesor.
+        f'<path class="trajectory-path" d="M0 {target_y} L100 {start_y}" />'
+        f'<circle class="trajectory-point" cx="0" cy="{target_y}" r="4" />'
+        f'<circle class="trajectory-point" cx="100" cy="{start_y}" r="4" />'
+        '</svg>'
+    )
+
+
 def _rhythm_phase_index(status: dict[str, Any]) -> int:
     if status.get("state") in {"idle", "waiting_for_play"}:
         return 0
@@ -919,19 +961,32 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
         # distintos en una tarjeta porque el alumno debe verlos como dos
         # gestos físicos independientes.
         for lane, action in enumerate(moment.get("actions", [])[:2]):
-            top = 24 + lane * 82
+            # Dos acciones simultáneas se distribuyen en filas separadas;
+            # las tarjetas grandes deben conservar aire entre sí.
+            top = 30 + lane * 124
             action_color = _rhythm_card_color({"actions": [action]})
+            duration_beats, hold_width = _rhythm_gesture_duration(action, bpm)
+            duration_html = ""
+            duration_class = ""
+            if duration_beats >= 0.05:
+                duration_class = " duration"
+                duration_html = (
+                    f'{_rhythm_hold_trajectory(action, hold_width)}'
+                    '<span class="rhythm-card-duration"><i></i>'
+                    f'<em>{duration_beats:.1f} BEATS · '
+                    f'{round(int(action.get("start_value", action.get("target_value", 63))) / 127 * 100)}% '
+                    f'→ {round(int(action.get("target_value", 63)) / 127 * 100)}%</em></span>'
+                )
             cards.append(
-                f'<article class="rhythm-card {action_color} status-{escape(visual_state)} {stage}" '
+                f'<article class="rhythm-card{duration_class} {action_color} status-{escape(visual_state)} {stage}" '
                 f'style="left:{left:.1f}%;top:{top}px">'
                 f'<div class="rhythm-card-actions"><span class="rhythm-action">'
-                f'{escape(_rhythm_action_label(action))}</span></div></article>'
+                f'{escape(_rhythm_action_label(action))}</span></div>{duration_html}</article>'
             )
     scale = '<span>8 BEATS</span><span>6</span><span>4</span><span>2</span><strong>1</strong>'
-    focus = render_rhythm_now_focus(status)
     return (
         '<section class="rhythm-lane"><div class="rhythm-now"><i></i></div>'
-        f'{"".join(cards)}{focus}<div class="rhythm-scale">{scale}</div></section>'
+        f'{"".join(cards)}<div class="rhythm-scale">{scale}</div></section>'
     )
 
 
@@ -961,6 +1016,135 @@ def render_rhythm_next(status: dict[str, Any]) -> str:
         '<aside class="rhythm-next"><small>PRÓXIMO</small>'
         f'<div class="rhythm-next-time">{escape(_rhythm_countdown(status.get("seconds_until_next"), bpm))}</div>'
         f'<h3>{escape(label)}</h3><span class="rhythm-next-action">{escape(action_text)}</span></aside>'
+    )
+
+
+def _rhythm_seconds_until(status: dict[str, Any], moment: dict[str, Any]) -> float:
+    return float(moment.get("reference_seconds", 0.0)) - float(
+        status.get("student_seconds", 0.0)
+    )
+
+
+def _rhythm_live_midi(action: dict[str, Any], status: dict[str, Any]) -> int | None:
+    """Valor recibido para explicar un gesto sin duplicar el mixer visual."""
+    mixer = status.get("mixer_state", {})
+    section = str(action.get("section", ""))
+    control = str(action.get("control", ""))
+    if control == "crossfader":
+        value = mixer.get("crossfader", {})
+    else:
+        value = mixer.get(section, {}).get(control, {})
+    if not isinstance(value, dict) or not value.get("received"):
+        return None
+    midi = value.get("midi")
+    return int(midi) if midi is not None else None
+
+
+def _rhythm_action_guidance(action: dict[str, Any], status: dict[str, Any]) -> str:
+    """Objetivo breve y físico: perilla/fader no se explica como botón."""
+    if action.get("target_active") is not None:
+        verb = "ACTIVÁ" if action.get("target_active") else "DESACTIVÁ"
+        return f"BOTÓN · {verb}"
+    target = action.get("target_value")
+    if target is None:
+        return "ACCIÓN PUNTUAL"
+    target_midi = int(target)
+    target_percent = round(target_midi / 127 * 100)
+    current = _rhythm_live_midi(action, status)
+    if current is None:
+        return f"OBJETIVO {target_percent}%"
+    current_percent = round(current / 127 * 100)
+    if target_midi > current + 2:
+        direction = "SUBÍ ↑"
+    elif target_midi < current - 2:
+        direction = "BAJÁ ↓"
+    else:
+        direction = "MANTENÉ ✓"
+    return f"{current_percent}% → {target_percent}% · {direction}"
+
+
+def _rhythm_prepare_progress(seconds: float, bpm: float | int | None) -> tuple[int, str]:
+    """Los últimos 16 beats se llenan; antes, la consigna ya es visible."""
+    beats = max(0.0, seconds * float(bpm or 128.0) / 60.0)
+    progress = round(max(0.0, min(1.0, (16.0 - beats) / 16.0)) * 100)
+    return progress, _rhythm_countdown(seconds, bpm)
+
+
+def _render_rhythm_level(
+    label: str,
+    moment: dict[str, Any] | None,
+    status: dict[str, Any],
+    style: str,
+) -> str:
+    if moment is None:
+        return (
+            f'<section class="rhythm-level {style} empty"><small>{label}</small>'
+            '<strong>--- </strong><em>Sin otra acción</em></section>'
+        )
+    actions = list(moment.get("actions", []))
+    intent, _ = _moment_intent(moment)
+    compact = " · ".join(_rhythm_action_label(action) for action in actions)
+    action_detail = " + ".join(
+        _rhythm_action_guidance(action, status) for action in actions
+    )
+    seconds_until = _rhythm_seconds_until(status, moment)
+    countdown_html = ""
+    if style == "now":
+        title = intent if intent == "BASS SWAP" else " + ".join(
+            str(action.get("instruction", compact)) for action in actions
+        )
+        detail = action_detail
+    else:
+        title = compact or intent
+        countdown = _rhythm_countdown(
+            seconds_until, status.get("musical_context", {}).get("bpm")
+        )
+        detail = f"{countdown} · {action_detail}"
+        if style == "prepare":
+            progress, progress_label = _rhythm_prepare_progress(
+                seconds_until, status.get("musical_context", {}).get("bpm")
+            )
+            countdown_html = (
+                '<div class="rhythm-prepare-progress" '
+                f'aria-label="{escape(progress_label)}"><i style="width:{progress}%"></i>'
+                f'<span>{escape(progress_label)}</span></div>'
+            )
+    color = _rhythm_card_color(moment)
+    return (
+        f'<section class="rhythm-level {style} {color}"><small>{label}</small>'
+        f'<strong>{escape(title)}</strong><em>{escape(detail or "Objetivo listo")}</em>'
+        f'{countdown_html}</section>'
+    )
+
+
+def render_rhythm_action_panels(status: dict[str, Any]) -> str:
+    """Consignas fijas: el reloj manda; los resultados sólo califican."""
+    state = status.get("state")
+    if state in {"idle", "waiting_for_play"}:
+        waiting = "PULSÁ PLAY EN DECK A" if state == "waiting_for_play" else "INICIÁ EL INTENTO"
+        return (
+            '<section class="rhythm-action-panels waiting"><div>'
+            f'<small>COREOGRAFÍA</small><strong>{waiting}</strong>'
+            '<em>El reloj musical comenzará con la música.</em></div></section>'
+        )
+    current = status.get("current")
+    current_due = current is not None and _rhythm_seconds_until(status, current) <= 1.0
+    now = current if current_due else None
+    prepare = status.get("next") if current_due else current
+    after = status.get("after_next") if current_due else status.get("next")
+    missed = list(status.get("missed", []))[-3:]
+    missed_html = "".join(
+        '<li><span>!</span>'
+        f'{escape(_rhythm_action_label(action))}<em>MISSED</em></li>'
+        for action in reversed(missed)
+    ) or '<li class="clear">Sin pendientes</li>'
+    return (
+        '<section class="rhythm-action-panels">'
+        f'{_render_rhythm_level("AHORA", now, status, "now")}'
+        f'{_render_rhythm_level("PREPARATE", prepare, status, "prepare")}'
+        f'{_render_rhythm_level("DESPUÉS", after, status, "after")}'
+        '<aside class="rhythm-missed"><small>PENDIENTES / MISSED</small>'
+        f'<ul>{missed_html}</ul></aside></section>'
     )
 
 
@@ -2038,7 +2222,7 @@ def register_product_pages(runtime: Any) -> None:
                         render_rhythm_lane(idle_status), sanitize=False
                     ).classes("w-full")
                     next_view = ui.html(
-                        render_rhythm_next(idle_status), sanitize=False
+                        render_rhythm_action_panels(idle_status), sanitize=False
                     ).classes("w-full")
                 feedback_view = ui.html(
                     render_rhythm_feedback(idle_status), sanitize=False
@@ -2093,7 +2277,7 @@ def register_product_pages(runtime: Any) -> None:
                     )
                     timeline_view.set_content(render_rhythm_phases(status))
                     now_view.set_content(render_rhythm_lane(status))
-                    next_view.set_content(render_rhythm_next(status))
+                    next_view.set_content(render_rhythm_action_panels(status))
                     feedback_view.set_content(render_rhythm_feedback(status))
                     if state == "idle":
                         practice_progress.set_text(

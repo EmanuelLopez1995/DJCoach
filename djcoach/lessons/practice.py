@@ -22,7 +22,10 @@ from .take_repository import TakeRepository
 from .initial_state import compare_initial_state
 
 
-MISSED_AFTER_SECONDS = 15.0
+# Es una ventana breve de evaluación, no un bloqueo de la partitura. La guía
+# visual ya avanza estrictamente por tiempo; al cerrarse esta ventana el fallo
+# pasa a la cola secundaria MISSED.
+MISSED_AFTER_SECONDS = 3.0
 ON_TIME_TOLERANCE_SECONDS = 5.0
 EARLY_ACTION_WINDOW_SECONDS = 10.0
 
@@ -41,7 +44,6 @@ class ActiveStudentAttempt:
     started_monotonic: float
     processed_event_count: int = 0
     anchor_elapsed_seconds: float | None = None
-    current_moment_index: int = 0
     outcomes: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -114,14 +116,6 @@ class GuidedPracticeRecorder:
     def _outcome_ids(active: ActiveStudentAttempt) -> set[str]:
         return {str(outcome["step_id"]) for outcome in active.outcomes}
 
-    def _advance_resolved_moments(self, active: ActiveStudentAttempt) -> None:
-        outcome_ids = self._outcome_ids(active)
-        while active.current_moment_index < len(active.moments):
-            moment = active.moments[active.current_moment_index]
-            if not all(action["id"] in outcome_ids for action in moment["actions"]):
-                break
-            active.current_moment_index += 1
-
     def _record_outcome(
         self,
         active: ActiveStudentAttempt,
@@ -141,45 +135,40 @@ class GuidedPracticeRecorder:
         for index, existing in enumerate(active.outcomes):
             if existing["step_id"] != step["id"]:
                 continue
-            # MISSED describe que el alumno no llegó a tiempo, pero no debe
-            # impedir reconocer que finalmente realizó la acción correcta.
-            if existing["status"] == "missed" and status == "completed":
-                active.outcomes[index] = outcome
             return
         active.outcomes.append(outcome)
-
-    @staticmethod
-    def _recoverable_missed_step(
-        active: ActiveStudentAttempt, event: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        missed_ids = {
-            str(outcome["step_id"])
-            for outcome in active.outcomes
-            if outcome["status"] == "missed"
-        }
-        return next(
-            (
-                step
-                for step in reversed(active.steps)
-                if step["id"] in missed_ids and event_matches_step(event, step)
-            ),
-            None,
-        )
 
     def _mark_missed_until(
         self, active: ActiveStudentAttempt, student_seconds: float
     ) -> None:
-        self._advance_resolved_moments(active)
-        while active.current_moment_index < len(active.moments):
-            moment = active.moments[active.current_moment_index]
-            if student_seconds <= moment["reference_seconds"] + MISSED_AFTER_SECONDS:
-                break
-            outcome_ids = self._outcome_ids(active)
+        """Cierra ventanas vencidas sin tocar el reloj de la lección."""
+        outcome_ids = self._outcome_ids(active)
+        for moment in active.moments:
+            if student_seconds <= float(moment["reference_seconds"]) + MISSED_AFTER_SECONDS:
+                continue
             for action in moment["actions"]:
                 if action["id"] not in outcome_ids:
                     self._record_outcome(active, action, "missed")
-            active.current_moment_index += 1
-            self._advance_resolved_moments(active)
+                    outcome_ids.add(str(action["id"]))
+
+    @staticmethod
+    def _scheduled_moment_index(
+        active: ActiveStudentAttempt, student_seconds: float
+    ) -> int | None:
+        """Último momento cuyo instante musical ya llegó.
+
+        Antes del primer evento se conserva ese primer momento para poder
+        anunciarlo en PREPARATE. Después, el índice avanza sólo con el reloj,
+        incluso cuando una acción anterior quedó MISSED.
+        """
+        if not active.moments:
+            return None
+        index = 0
+        for candidate, moment in enumerate(active.moments):
+            if float(moment["reference_seconds"]) > student_seconds:
+                break
+            index = candidate
+        return index
 
     def _refresh(self, active: ActiveStudentAttempt) -> dict[str, Any]:
         capture = self.runtime.peek_take_capture(active.checkpoint)
@@ -201,23 +190,23 @@ class GuidedPracticeRecorder:
                 0.0, event_elapsed - active.anchor_elapsed_seconds
             )
             self._mark_missed_until(active, student_seconds)
-            if active.current_moment_index >= len(active.moments):
-                continue
             outcome_ids = self._outcome_ids(active)
-            matched_step = next(
-                (
-                    action
-                    for moment in active.moments[active.current_moment_index :]
-                    if moment["reference_seconds"]
-                    <= student_seconds + EARLY_ACTION_WINDOW_SECONDS
-                    for action in moment["actions"]
-                    if action["id"] not in outcome_ids
-                    and event_matches_step(event, action)
-                ),
-                None,
+            candidates = [
+                step
+                for step in active.steps
+                if step["id"] not in outcome_ids
+                and -EARLY_ACTION_WINDOW_SECONDS
+                <= student_seconds - float(step["reference_seconds"])
+                <= MISSED_AFTER_SECONDS
+                and event_matches_step(event, step)
+            ]
+            # Si el mismo control aparece varias veces, asociamos el gesto al
+            # momento musical más cercano, no al primer paso pendiente.
+            matched_step = min(
+                candidates,
+                key=lambda step: abs(student_seconds - float(step["reference_seconds"])),
+                default=None,
             )
-            if matched_step is None:
-                matched_step = self._recoverable_missed_step(active, event)
             if matched_step is not None:
                 delta = round(
                     student_seconds - matched_step["reference_seconds"], 3
@@ -236,7 +225,6 @@ class GuidedPracticeRecorder:
                     round(student_seconds, 3),
                     delta,
                 )
-                self._advance_resolved_moments(active)
 
         active.processed_event_count = len(events)
         if active.anchor_elapsed_seconds is not None:
@@ -261,23 +249,34 @@ class GuidedPracticeRecorder:
             refreshed = self._refresh(active)
             if active.anchor_elapsed_seconds is None:
                 state = "waiting_for_play"
-            elif active.current_moment_index >= len(active.moments):
-                state = "guidance_complete"
+                scheduled_index = None
             else:
+                scheduled_index = self._scheduled_moment_index(
+                    active, refreshed["student_seconds"]
+                )
+            if active.anchor_elapsed_seconds is not None and (
+                len(self._outcome_ids(active)) == len(active.steps)
+                or scheduled_index is None
+                or refreshed["student_seconds"]
+                > float(active.moments[-1]["reference_seconds"]) + MISSED_AFTER_SECONDS
+            ):
+                state = "guidance_complete"
+            elif active.anchor_elapsed_seconds is not None:
                 state = "guiding"
             current = (
-                active.moments[active.current_moment_index]
-                if active.current_moment_index < len(active.moments)
+                active.moments[scheduled_index]
+                if scheduled_index is not None
                 else None
             )
             following = (
-                active.moments[active.current_moment_index + 1]
-                if active.current_moment_index + 1 < len(active.moments)
+                active.moments[scheduled_index + 1]
+                if scheduled_index is not None
+                and scheduled_index + 1 < len(active.moments)
                 else None
             )
             previous_index = (
-                active.current_moment_index - 1
-                if active.current_moment_index > 0
+                scheduled_index - 1
+                if scheduled_index is not None and scheduled_index > 0
                 else None
             )
             previous = (
@@ -318,8 +317,10 @@ class GuidedPracticeRecorder:
                     visual_state = "problem"
                 elif all(moment_outcomes):
                     visual_state = "completed"
-                elif index == active.current_moment_index:
+                elif index == scheduled_index:
                     visual_state = "current"
+                elif float(moment["reference_seconds"]) < refreshed["student_seconds"]:
+                    visual_state = "past"
                 else:
                     visual_state = "pending"
                 timeline.append({**shown, "visual_state": visual_state})
@@ -395,7 +396,18 @@ class GuidedPracticeRecorder:
                 "previous": present(previous),
                 "current": present(current),
                 "next": present(following),
+                "after_next": present(
+                    active.moments[scheduled_index + 2]
+                    if scheduled_index is not None
+                    and scheduled_index + 2 < len(active.moments)
+                    else None
+                ),
                 "timeline": timeline,
+                "missed": [
+                    {**steps_by_id[str(outcome["step_id"])], "outcome": outcome}
+                    for outcome in active.outcomes
+                    if outcome["status"] == "missed"
+                ],
                 "feedback": feedback,
                 "combo": combo,
                 "mixer_state": {
@@ -404,7 +416,7 @@ class GuidedPracticeRecorder:
                     "crossfader": final_state.get("crossfader", {}),
                 },
                 "current_moment_number": min(
-                    active.current_moment_index + 1, len(active.moments)
+                    (scheduled_index or 0) + 1, len(active.moments)
                 ),
                 "total_moments": len(active.moments),
                 "musical_context": {

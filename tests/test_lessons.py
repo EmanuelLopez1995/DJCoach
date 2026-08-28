@@ -255,10 +255,12 @@ class LessonDomainTests(unittest.TestCase):
                     "type": "control_gesture",
                     "section": "deck_b",
                     "control": "low",
+                    "start_value": 63,
                     "end_value": 0,
                     "delta": -63,
                     "minimum_value": 0,
                     "maximum_value": 63,
+                    "duration_seconds": 1.5,
                     "direction": "decrease",
                     "elapsed_seconds": 10.0,
                 },
@@ -275,6 +277,8 @@ class LessonDomainTests(unittest.TestCase):
 
         self.assertEqual(len(steps), 2)
         self.assertEqual(steps[0]["reference_seconds"], 5.0)
+        self.assertEqual(steps[0]["duration_seconds"], 1.5)
+        self.assertEqual(steps[0]["start_value"], 63)
         self.assertEqual(steps[0]["instruction"], "Cerrá LOW de Deck B")
         self.assertTrue(
             event_matches_step(

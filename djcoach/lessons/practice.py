@@ -20,6 +20,7 @@ from .guidance import (
 from .repository import LessonRepository
 from .take_repository import TakeRepository
 from .initial_state import compare_initial_state
+from .evaluation import evaluate_guided_attempt
 
 
 # Es una ventana breve de evaluación, no un bloqueo de la partitura. La guía
@@ -492,6 +493,9 @@ class GuidedPracticeRecorder:
                     completed / len(active.steps) * 100
                 ),
             }
+            active.take.features["evaluation"] = evaluate_guided_attempt(
+                active.steps, active.outcomes, result["final_state"]
+            )
             self.attempt_repository.save(active.take)
             self.active = None
             return active.take

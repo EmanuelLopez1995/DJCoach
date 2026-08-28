@@ -12,6 +12,7 @@ from .guidance import (
     event_matches_step,
 )
 from .practice import GuidedPracticeRecorder
+from .evaluation import evaluate_guided_attempt
 from .initial_state import (
     InitialStateComparison,
     InitialStateItem,
@@ -26,6 +27,7 @@ __all__ = [
     "FEATURE_SCHEMA_VERSION",
     "AttemptRepository",
     "GuidedPracticeRecorder",
+    "evaluate_guided_attempt",
     "InitialStateComparison",
     "InitialStateItem",
     "build_guidance_steps",

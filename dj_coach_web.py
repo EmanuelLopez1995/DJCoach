@@ -399,6 +399,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="no abre automáticamente el navegador",
     )
+    parser.add_argument(
+        "--no-reload",
+        action="store_true",
+        help="desactiva la recarga automática al editar archivos Python",
+    )
     return parser.parse_args()
 
 
@@ -413,7 +418,13 @@ def main() -> None:
         dark=True,
         language="es",
         show=not args.no_open,
-        reload=False,
+        # Desarrollo local: NiceGUI reinicia el backend y recarga el
+        # navegador cuando se modifica código Python. Para grabaciones largas
+        # se puede usar --no-reload y evitar cualquier reinicio accidental.
+        reload=not args.no_reload,
+        # Recarga código de la app, pero no reinicia el servidor por los
+        # archivos de pruebas que se modifican/ejecutan durante desarrollo.
+        uvicorn_reload_excludes=".*, .py[cod], .sw.*, ~*, tests/*, tests/**",
         favicon="🎧",
     )
 

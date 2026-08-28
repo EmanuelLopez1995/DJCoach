@@ -166,6 +166,7 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("rhythm-now", lane)
         self.assertIn("8 BEATS", lane)
         self.assertIn("B LOW ↓", lane)
+        self.assertIn("INICIO", lane)
         self.assertIn("rhythm-card-duration", lane)
         self.assertIn("3.0 BEATS", lane)
         self.assertIn("rhythm-hold", lane)

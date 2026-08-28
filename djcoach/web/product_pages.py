@@ -25,6 +25,7 @@ from djcoach.lessons import (
     evaluate_preparation,
     extract_take_features,
     compare_initial_state,
+    evaluate_guided_attempt,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -113,7 +114,7 @@ PRODUCT_CSS = """
 .rhythm-lane{min-height:310px}.rhythm-card{min-width:118px;max-width:290px;padding:14px 18px;border-radius:11px}.rhythm-card.duration{transform:translateX(-100%);padding-bottom:11px}.rhythm-card.deck-a{border-left-width:4px}.rhythm-card.deck-b{border-left-width:4px}.rhythm-card.mixer{border-left-width:4px}.rhythm-action{font-size:15px;font-weight:950;letter-spacing:.04em}.rhythm-card-duration{display:flex;align-items:center;gap:7px;margin-top:9px}.rhythm-card-duration i{height:4px;flex:1;border-radius:999px;background:currentColor;box-shadow:0 0 8px currentColor}.rhythm-card-duration em{color:#b8c6d6;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.08em;white-space:nowrap}.rhythm-card.deck-a .rhythm-card-duration{color:#36d7ff}.rhythm-card.deck-b .rhythm-card-duration{color:#ff4fd8}.rhythm-card.mixer .rhythm-card-duration{color:#ffb648}.rhythm-prepare-progress{position:relative;height:19px;margin-top:10px;overflow:hidden;border:1px solid #765294;border-radius:999px;background:#0b0d16}.rhythm-prepare-progress i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8b5cf6,#ffbd59);box-shadow:0 0 12px #c46eff;transition:width .1s linear}.rhythm-prepare-progress span{position:relative;z-index:1;display:grid;height:100%;place-items:center;color:#fff;font-size:9px;font-weight:950;letter-spacing:.08em;text-shadow:0 1px 3px #000}@media(max-width:620px){.rhythm-lane{min-height:310px}.rhythm-card{min-width:88px;max-width:180px;padding:10px}.rhythm-action{font-size:12px}}
 .rhythm-card{max-width:420px}
 /* Nota sostenida: cabeza fija y cola horizontal proporcional a su duración. */
-.rhythm-card.duration{transform:translateX(-50%);overflow:visible}.rhythm-hold{position:absolute;z-index:0;top:calc(50% - 44px);right:calc(100% - 10px);width:var(--hold-width);height:88px;overflow:visible;opacity:.9}.rhythm-hold .trajectory-guide{fill:none;stroke:#526074;stroke-width:1;stroke-dasharray:3 4}.rhythm-hold .trajectory-path{fill:none;stroke:currentColor;stroke-width:5;filter:drop-shadow(0 0 5px currentColor)}.rhythm-hold .trajectory-point{fill:#f7fbff;stroke:currentColor;stroke-width:2}.rhythm-card.duration .rhythm-card-actions,.rhythm-card.duration .rhythm-card-duration{position:relative;z-index:1}.rhythm-card.deck-a .rhythm-hold{color:#36d7ff}.rhythm-card.deck-b .rhythm-hold{color:#ff4fd8}.rhythm-card.mixer .rhythm-hold{color:#ffb648}
+.rhythm-card.duration{transform:translateX(-50%);overflow:visible}.rhythm-hold{position:absolute;z-index:0;top:calc(50% - 44px);right:50%;width:var(--hold-width);height:88px;overflow:visible;opacity:.9}.rhythm-hold .trajectory-guide{fill:none;stroke:#526074;stroke-width:1;stroke-dasharray:3 4}.rhythm-hold .trajectory-path{fill:none;stroke:currentColor;stroke-width:5;filter:drop-shadow(0 0 5px currentColor)}.rhythm-hold .trajectory-point{fill:#f7fbff;stroke:currentColor;stroke-width:2}.rhythm-card-start{position:absolute;z-index:3;top:-23px;left:50%;display:grid;justify-items:center;gap:2px;transform:translateX(-50%);pointer-events:none}.rhythm-card-start i{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;background:#08111b;box-shadow:0 0 10px currentColor}.rhythm-card-start em{color:#f3f7fb;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.1em;text-shadow:0 1px 3px #000}.rhythm-card.duration .rhythm-card-actions,.rhythm-card.duration .rhythm-card-duration{position:relative;z-index:1}.rhythm-card.deck-a .rhythm-hold,.rhythm-card.deck-a .rhythm-card-start{color:#36d7ff}.rhythm-card.deck-b .rhythm-hold,.rhythm-card.deck-b .rhythm-card-start{color:#ff4fd8}.rhythm-card.mixer .rhythm-hold,.rhythm-card.mixer .rhythm-card-start{color:#ffb648}.result-overview{display:grid;grid-template-columns:200px 1fr;gap:14px;margin:18px 0}.result-primary-score,.result-metrics,.result-recommendations,.result-history{padding:16px;border:1px solid #293647;border-radius:14px;background:#0b121c}.result-primary-score{display:grid;place-items:center;text-align:center}.result-primary-score .result-score{line-height:1}.result-primary-score>div{color:#8fa0b5;font-size:9px;font-weight:900;letter-spacing:.1em}.result-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.result-metrics div{padding:12px;border-radius:10px;background:#101924}.result-metrics span{display:block;color:#8293a9;font-size:9px;font-weight:900;letter-spacing:.11em}.result-metrics strong{display:block;margin-top:6px;color:#f5f8fc;font-size:20px}.result-recommendations{display:grid;gap:8px;margin:12px 0}.result-section-title{color:#8ddfff;font-size:10px;font-weight:950;letter-spacing:.13em}.result-recommendation{padding:10px 12px;border-left:3px solid #ffbd59;border-radius:7px;background:#17130d;color:#dfd1ad;font-size:13px}.result-row{grid-template-columns:34px 1fr auto}.result-row.success{border-color:#276c4e}.result-row.warning{border-color:#715525}.result-row.problem{border-color:#75363a}.result-row-feedback{margin-top:3px;color:#91a1b5;font-size:11px}.result-verdict{font-size:11px;font-weight:950;letter-spacing:.08em}.result-verdict.success{color:#58e5a3}.result-verdict.warning{color:#ffbd59}.result-verdict.problem{color:#ff7670}.result-history{display:grid;gap:7px;margin-top:16px;color:#aebdce;font-size:12px}@media(max-width:700px){.result-overview{grid-template-columns:1fr}.result-metrics{grid-template-columns:1fr}.result-row{grid-template-columns:28px 1fr}.result-verdict{grid-column:2}}
 """
 
 
@@ -980,6 +981,7 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
             cards.append(
                 f'<article class="rhythm-card{duration_class} {action_color} status-{escape(visual_state)} {stage}" '
                 f'style="left:{left:.1f}%;top:{top}px">'
+                '<span class="rhythm-card-start"><i></i><em>INICIO</em></span>'
                 f'<div class="rhythm-card-actions"><span class="rhythm-action">'
                 f'{escape(_rhythm_action_label(action))}</span></div>{duration_html}</article>'
             )
@@ -2308,36 +2310,66 @@ def register_product_pages(runtime: Any) -> None:
                 product_shell("Resultado no encontrado", "El intento local no existe.")
                 return
             features = attempt.features
-            steps_by_id = {
-                step["id"]: step for step in features.get("steps", [])
-            }
+            evaluation = features.get("evaluation") or evaluate_guided_attempt(
+                features.get("steps", []),
+                features.get("outcomes", []),
+                attempt.final_state,
+            )
             product_shell(
                 "Resultado del intento",
                 f"Práctica guiada de {lesson.name}",
             )
-            ui.label(f'{features.get("score_percentage", 0)}%').classes(
-                "result-score"
-            )
-            ui.label(
-                f'{features.get("completed_count", 0)} de '
-                f'{features.get("total_steps", 0)} consignas completadas'
-            ).classes("prep-intro")
+            with ui.element("section").classes("result-overview"):
+                with ui.element("div").classes("result-primary-score"):
+                    ui.label(f'{evaluation.get("quality_score", 0)}%').classes("result-score")
+                    ui.label("CALIDAD DE EJECUCIÓN")
+                with ui.element("div").classes("result-metrics"):
+                    ui.html(
+                        f'<div><span>ACCIONES</span><strong>{evaluation.get("completed_count", 0)} / {len(features.get("steps", []))}</strong></div>'
+                        f'<div><span>MISSED</span><strong>{evaluation.get("missed_count", 0)}</strong></div>'
+                        f'<div><span>TIMING</span><strong>{evaluation.get("timing_issue_count", 0)} ajustes</strong></div>',
+                        sanitize=False,
+                    )
+            with ui.element("section").classes("result-recommendations"):
+                ui.label("PARA EL PRÓXIMO INTENTO").classes("result-section-title")
+                for recommendation in evaluation.get("recommendations", []):
+                    ui.label(recommendation).classes("result-recommendation")
             with ui.element("section").classes("review-section"):
-                for outcome in features.get("outcomes", []):
-                    step = steps_by_id[outcome["step_id"]]
-                    completed = outcome["status"] == "completed"
-                    timing = {
-                        "early": "antes",
-                        "on_time": "a tiempo",
-                        "late": "tarde",
-                    }.get(outcome.get("timing"), "omitida")
-                    with ui.element("div").classes("result-row"):
-                        ui.label("✓" if completed else "○").classes(
-                            "result-ok" if completed else "result-missed"
+                ui.label("DESGLOSE DE LA TÉCNICA").classes("result-section-title")
+                for item in evaluation.get("results", []):
+                    with ui.element("div").classes(
+                        f'result-row {item.get("state", "problem")}'
+                    ):
+                        ui.label(
+                            "✓" if item["state"] == "success" else "!"
+                        ).classes(
+                            "result-ok" if item["state"] == "success" else "result-missed"
                         )
-                        ui.label(step["instruction"])
-                        ui.label(timing).classes(
-                            "result-ok" if completed else "result-missed"
+                        with ui.element("div"):
+                            ui.label(item["instruction"])
+                            ui.label(item["feedback"]).classes("result-row-feedback")
+                        delta = item.get("delta_beats")
+                        detail = (
+                            f'{item["verdict"]} · {float(delta):+g} beats'
+                            if delta is not None
+                            else item["verdict"]
+                        )
+                        ui.label(detail).classes(f'result-verdict {item["state"]}')
+            previous_attempts = [
+                candidate
+                for candidate in attempt_repository.list_for_lesson(lesson.id)
+                if candidate.id != attempt.id
+            ][:3]
+            if previous_attempts:
+                with ui.element("section").classes("result-history"):
+                    ui.label("INTENTOS ANTERIORES").classes("result-section-title")
+                    for previous in previous_attempts:
+                        previous_evaluation = previous.features.get("evaluation", {})
+                        score = previous_evaluation.get(
+                            "quality_score", previous.features.get("score_percentage", 0)
+                        )
+                        ui.label(
+                            f'{previous.started_at[:16].replace("T", " ")} · {score}%'
                         )
             ui.button(
                 "REPETIR PRÁCTICA",

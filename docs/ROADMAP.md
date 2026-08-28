@@ -40,8 +40,8 @@ Traktor.
 - [x] Revalidar atómicamente el mixer al pulsar Iniciar intento.
 - [x] Impedir referencias nuevas cuando faltan valores MIDI iniciales esenciales.
 - [ ] Comparar reference take contra student attempt con tolerancias.
-- [ ] Mostrar feedback concreto por técnica.
-- [ ] Permitir repetir y conservar el historial de intentos.
+- [x] Mostrar feedback concreto por técnica.
+- [x] Permitir repetir y conservar el historial de intentos.
 - [ ] Crear visualización Ghost después de validar la comparación.
 
 La arquitectura de esta dirección está documentada en
@@ -216,7 +216,7 @@ no se afirma si un deck va adelantado o atrasado.
 - [ ] Vista rítmica con beat, compás y frase.
 - [ ] Vista de estructura/onda de cada canción.
 - [ ] Historial completo de la sesión dentro del frontend.
-- [ ] Resumen posterior con transiciones, avisos y mejoras sugeridas.
+- [x] Resumen posterior con resultados por técnica, timing y mejoras sugeridas.
 - [ ] Gráficos de evolución de volumen, EQ, crossfader y Phase.
 - [ ] Exportación de un informe legible de la sesión.
 

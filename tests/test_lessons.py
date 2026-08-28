@@ -17,6 +17,7 @@ from djcoach.lessons import (
     build_guidance_steps,
     compare_initial_state,
     event_matches_step,
+    evaluate_guided_attempt,
     extract_take_features,
 )
 from djcoach.tracks import TrackCatalog
@@ -573,6 +574,29 @@ class LessonDomainTests(unittest.TestCase):
             attempt = recorder.stop(lesson.id)
             self.assertEqual(attempt.features["score_percentage"], 100)
             self.assertEqual(attempt.role, TakeRole.STUDENT)
+
+    def test_attempt_evaluation_reports_timing_and_missed_actions(self) -> None:
+        steps = [
+            {"id": "step_001", "order": 1, "kind": "control", "instruction": "Subí VOLUME de Deck B"},
+            {"id": "step_002", "order": 2, "kind": "transport", "instruction": "Activá LOOP de Deck B"},
+            {"id": "step_003", "order": 3, "kind": "control", "instruction": "Cerrá LOW de Deck A"},
+        ]
+        outcomes = [
+            {"step_id": "step_001", "status": "completed", "delta_seconds": 0.1},
+            {"step_id": "step_002", "status": "completed", "delta_seconds": -1.5},
+            {"step_id": "step_003", "status": "missed"},
+        ]
+
+        evaluation = evaluate_guided_attempt(
+            steps, outcomes, {"midi_clock": {"received": True, "bpm": 120.0}}
+        )
+
+        self.assertEqual(evaluation["completion_percentage"], 67)
+        self.assertEqual(evaluation["missed_count"], 1)
+        self.assertEqual(evaluation["results"][0]["verdict"], "PERFECT")
+        self.assertEqual(evaluation["results"][1]["verdict"], "EARLY")
+        self.assertEqual(evaluation["results"][2]["verdict"], "MISSED")
+        self.assertIn("No se realizó a tiempo", evaluation["recommendations"][0])
 
     def test_preparation_requires_midi_loaded_decks_and_name_confirmation(self) -> None:
         snapshot = {

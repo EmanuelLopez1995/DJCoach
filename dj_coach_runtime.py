@@ -58,6 +58,7 @@ class DJCoachRuntime:
         self.port: mido.ports.BaseInput | None = None
         self.reader_thread: threading.Thread | None = None
         self.worker_thread: threading.Thread | None = None
+        self.connector_thread: threading.Thread | None = None
         self._started = False
         self._stopped = False
 
@@ -67,38 +68,69 @@ class DJCoachRuntime:
                 return
             self._started = True
 
-        try:
-            port_names = mido.get_input_names()
-            port_name = find_djcoach_port(port_names)
-            if port_name is None:
-                raise RuntimeError(
-                    "No se encontró el puerto djCoach. Abrí loopMIDI y recargá la app."
-                )
-            port = mido.open_input(port_name)
-        except Exception as exc:
-            with self.lock:
-                self.status = "error"
-                self.error = str(exc)
-            return
-
-        with self.lock:
-            self.port_name = port_name
-            self.port = port
-            self.status = "connected"
-
-        self.reader_thread = threading.Thread(
-            target=read_midi_messages,
-            args=(port, self.incoming),
-            name="dj-coach-web-midi-reader",
-            daemon=True,
-        )
         self.worker_thread = threading.Thread(
             target=self._worker_loop,
             name="dj-coach-web-state-worker",
             daemon=True,
         )
-        self.reader_thread.start()
         self.worker_thread.start()
+        self.connector_thread = threading.Thread(
+            target=self._connect_loop,
+            name="dj-coach-web-midi-connector",
+            daemon=True,
+        )
+        self.connector_thread.start()
+
+    def _connect_loop(self) -> None:
+        """Reintenta el puerto tras una recarga o un reinicio de loopMIDI."""
+        while not self.stop_event.is_set():
+            with self.lock:
+                already_connected = self.port is not None
+            if already_connected:
+                self.stop_event.wait(0.5)
+                continue
+            try:
+                port_names = mido.get_input_names()
+                port_name = find_djcoach_port(port_names)
+                if port_name is None:
+                    raise RuntimeError("No se encontró el puerto djCoach.")
+                port = mido.open_input(port_name)
+            except Exception as exc:
+                with self.lock:
+                    self.status = "reconnecting"
+                    self.error = str(exc)
+                self.stop_event.wait(1.0)
+                continue
+
+            with self.lock:
+                if self.stop_event.is_set():
+                    port.close()
+                    return
+                self.port_name = port_name
+                self.port = port
+                self.status = "connected"
+                self.error = None
+                self.reader_thread = threading.Thread(
+                    target=self._read_port,
+                    args=(port,),
+                    name="dj-coach-web-midi-reader",
+                    daemon=True,
+                )
+                self.reader_thread.start()
+
+    def _read_port(self, port: mido.ports.BaseInput) -> None:
+        """Libera el puerto para que el conector pueda recuperarlo si se corta."""
+        read_midi_messages(port, self.incoming)
+        with self.lock:
+            if self.port is port:
+                self.port = None
+                if not self.stop_event.is_set():
+                    self.status = "reconnecting"
+                    self.error = "La conexi\u00f3n MIDI se reinici\u00f3; reconectando..."
+        try:
+            port.close()
+        except Exception:
+            pass
 
     def _worker_loop(self) -> None:
         while not self.stop_event.is_set():
@@ -250,6 +282,10 @@ class DJCoachRuntime:
 
         if self.worker_thread is not None:
             self.worker_thread.join(timeout=2)
+        if self.connector_thread is not None:
+            self.connector_thread.join(timeout=2)
+        if self.reader_thread is not None:
+            self.reader_thread.join(timeout=2)
 
         with self.lock:
             try:

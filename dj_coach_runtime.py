@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import copy
+import json
 import queue
 import threading
+import time
+from pathlib import Path
 from typing import Any
 
 import mido
@@ -35,6 +38,10 @@ from dj_coach import (
 )
 
 
+MIDI_STATE_CACHE_PATH = Path(__file__).resolve().parent / "data" / "runtime" / "midi_state_cache.json"
+MIDI_STATE_CACHE_WRITE_INTERVAL_SECONDS = 0.5
+
+
 class DJCoachRuntime:
     """Mantiene MIDI, reglas y sesión en segundo plano para una interfaz web."""
 
@@ -55,12 +62,61 @@ class DJCoachRuntime:
         self.last_raw_message: str | None = None
         self.last_midi_at: str | None = None
         self.saved_session_path: str | None = None
+        self.state_cache_restored = False
+        self.state_cache_updated_at: str | None = None
+        self._last_state_cache_write = 0.0
         self.port: mido.ports.BaseInput | None = None
         self.reader_thread: threading.Thread | None = None
         self.worker_thread: threading.Thread | None = None
         self.connector_thread: threading.Thread | None = None
         self._started = False
         self._stopped = False
+        self._restore_midi_state_cache()
+
+    def _restore_midi_state_cache(self) -> None:
+        """Recupera el Ãºltimo mixer conocido tras un reload del frontend."""
+        try:
+            payload = json.loads(MIDI_STATE_CACHE_PATH.read_text(encoding="utf-8"))
+            if int(payload.get("schema_version", 0)) != 1:
+                return
+            for target, key in (
+                (self.deck_a, "deck_a"),
+                (self.deck_b, "deck_b"),
+                (self.crossfader, "crossfader"),
+            ):
+                value = payload.get(key)
+                if isinstance(value, dict):
+                    target.update(copy.deepcopy(value))
+            self.state_cache_restored = True
+            self.state_cache_updated_at = payload.get("updated_at")
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            # La cachÃ© es sÃ³lo una ayuda de desarrollo; no impide iniciar MIDI.
+            return
+
+    def _save_midi_state_cache(self, *, force: bool = False) -> None:
+        """Guarda el estado de controles que Traktor no reemite al reconectar."""
+        now = time.monotonic()
+        if not force and now - self._last_state_cache_write < MIDI_STATE_CACHE_WRITE_INTERVAL_SECONDS:
+            return
+        payload = {
+            "schema_version": 1,
+            "updated_at": iso_timestamp(),
+            "deck_a": self.deck_a,
+            "deck_b": self.deck_b,
+            "crossfader": self.crossfader,
+        }
+        try:
+            MIDI_STATE_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            temporary_path = MIDI_STATE_CACHE_PATH.with_suffix(".tmp")
+            temporary_path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            temporary_path.replace(MIDI_STATE_CACHE_PATH)
+            self._last_state_cache_write = now
+            self.state_cache_updated_at = str(payload["updated_at"])
+        except OSError:
+            # No convertir un disco temporalmente inaccesible en un fallo MIDI.
+            return
 
     def start(self) -> None:
         with self.lock:
@@ -149,13 +205,17 @@ class DJCoachRuntime:
                         break
 
             with self.lock:
+                mixer_state_changed = False
                 for envelope in envelopes:
                     message = envelope.message
+                    deck_a_updated = update_deck_a(self.deck_a, message)
+                    deck_b_updated = update_deck_b(self.deck_b, message)
+                    crossfader_updated = update_crossfader(self.crossfader, message)
                     updated = any(
                         (
-                            update_deck_a(self.deck_a, message),
-                            update_deck_b(self.deck_b, message),
-                            update_crossfader(self.crossfader, message),
+                            deck_a_updated,
+                            deck_b_updated,
+                            crossfader_updated,
                             update_midi_clock(
                                 self.midi_clock, message, envelope.received_at
                             ),
@@ -166,8 +226,14 @@ class DJCoachRuntime:
                     )
                     if updated:
                         self.recorder.record_midi(message)
+                    mixer_state_changed = mixer_state_changed or any(
+                        (deck_a_updated, deck_b_updated, crossfader_updated)
+                    )
                     self.last_raw_message = str(message)
                     self.last_midi_at = iso_timestamp()
+
+                if mixer_state_changed:
+                    self._save_midi_state_cache()
 
                 refresh_midi_clock(self.midi_clock)
                 refresh_deck_tempos(self.deck_tempos)
@@ -208,6 +274,10 @@ class DJCoachRuntime:
                 "last_raw_message": self.last_raw_message,
                 "last_midi_at": self.last_midi_at,
                 "saved_session_path": self.saved_session_path,
+                "state_cache": {
+                    "restored": self.state_cache_restored,
+                    "updated_at": self.state_cache_updated_at,
+                },
             }
 
     def begin_take_capture(self) -> dict[str, Any]:
@@ -273,6 +343,7 @@ class DJCoachRuntime:
             self._stopped = True
             self.stop_event.set()
             port = self.port
+            self._save_midi_state_cache(force=True)
 
         if port is not None:
             try:

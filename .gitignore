@@ -9,4 +9,5 @@ data/tracks/**/*
 data/lessons/*.json
 data/takes/*.json
 data/attempts/*.json
+data/runtime/*.json
 Settings.tsi

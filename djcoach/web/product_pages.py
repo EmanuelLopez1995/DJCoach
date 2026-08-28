@@ -978,7 +978,12 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
         # La tarjeta sigue avanzando con la mÃºsica. Mientras el gesto estÃ¡ en
         # curso sÃ³lo evitamos que se atenÃºe: el punto de la cola muestra el
         # avance real de la perilla, no una card congelada sobre AHORA.
-        left = max(7.0, min(95.0, 62.0 - delta_beats * 5.5))
+        raw_left = 62.0 - delta_beats * 5.5
+        # El extremo derecho es la salida de la partitura. Antes las cards
+        # vencidas quedaban congeladas al aplicarles un máximo de 95%.
+        if raw_left > 95.0 and not holding:
+            continue
+        left = max(7.0, min(95.0, raw_left))
         stage = "now" if abs(delta_beats) <= 1.0 else "prepare" if delta_beats <= 4.0 else "far"
         # Cada fila representa una mano. No comprimimos dos movimientos
         # distintos en una tarjeta porque el alumno debe verlos como dos

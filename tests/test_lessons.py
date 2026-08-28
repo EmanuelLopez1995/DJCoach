@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import dj_coach_runtime as runtime_module
 from dj_coach_runtime import DJCoachRuntime
 from djcoach.domain import Lesson, Take, TakeRole
 from djcoach.lessons import (
@@ -175,6 +176,37 @@ class LessonDomainTests(unittest.TestCase):
         result = runtime.finish_take_capture(checkpoint)
         self.assertEqual(len(result["events"]), 1)
         self.assertEqual(result["events"][0]["elapsed_seconds"], 1.25)
+
+    def test_runtime_restores_last_known_mixer_state_after_reload(self) -> None:
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary_directory:
+            original_path = runtime_module.MIDI_STATE_CACHE_PATH
+            runtime_module.MIDI_STATE_CACHE_PATH = (
+                Path(temporary_directory) / "midi_state_cache.json"
+            )
+            try:
+                first_runtime = DJCoachRuntime()
+                first_runtime.deck_a["low"] = {
+                    "midi": 45,
+                    "normalized": 45 / 127,
+                    "percentage": 35,
+                    "received": True,
+                    "updated_at": "2026-08-28T10:00:00+00:00",
+                }
+                first_runtime.crossfader = {
+                    "midi": 80,
+                    "normalized": 80 / 127,
+                    "percentage": 63,
+                    "received": True,
+                    "updated_at": "2026-08-28T10:00:00+00:00",
+                }
+                first_runtime._save_midi_state_cache(force=True)
+
+                reloaded_runtime = DJCoachRuntime()
+                self.assertTrue(reloaded_runtime.state_cache_restored)
+                self.assertEqual(reloaded_runtime.deck_a["low"]["midi"], 45)
+                self.assertEqual(reloaded_runtime.crossfader["midi"], 80)
+            finally:
+                runtime_module.MIDI_STATE_CACHE_PATH = original_path
 
     def test_feature_extractor_builds_one_ordered_technique_timeline(self) -> None:
         take = Take(

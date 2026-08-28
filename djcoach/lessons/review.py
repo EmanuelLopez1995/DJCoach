@@ -52,6 +52,43 @@ def set_event_phase(features: dict[str, Any], review_id: str, phase: str) -> boo
     return False
 
 
+def summarize_phases(features: dict[str, Any]) -> list[dict[str, Any]]:
+    """Devuelve las fases editoriales en su orden musical, con sus acciones."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for event in prepare_review_timeline(features):
+        phase = str(event.get("phase", "Sin fase"))
+        grouped.setdefault(phase, []).append(event)
+    return [
+        {"phase": phase, "events": events}
+        for phase, events in grouped.items()
+    ]
+
+
+def publish_validation_errors(features: dict[str, Any]) -> list[str]:
+    """Reglas mínimas para no publicar una referencia imposible de practicar."""
+    timeline = prepare_review_timeline(features)
+    if not timeline:
+        return ["La referencia no tiene acciones para enseñar."]
+    has_anchor = any(
+        event.get("type") == "transport_change"
+        and event.get("section") == "deck_a"
+        and event.get("control") == "play"
+        and event.get("active")
+        for event in timeline
+    )
+    if not has_anchor:
+        return ["Falta el PLAY inicial de Deck A que inicia el reloj de práctica."]
+    actionable = [
+        event for event in timeline
+        if event.get("type") in {"control_gesture", "transport_change", "selector_change"}
+    ]
+    if not actionable:
+        return ["No quedaron acciones MIDI practicables después de la edición."]
+    if not any(event.get("phase") not in {None, "Sin fase"} for event in actionable):
+        return ["Asigná al menos una fase (Entrada, EQ Prep, Blend, Bass Swap, FX o Salida)."]
+    return []
+
+
 def _interpolate(points: list[dict[str, Any]], offset: float) -> int:
     ordered = sorted(points, key=lambda point: float(point["offset_seconds"]))
     if offset <= float(ordered[0]["offset_seconds"]):

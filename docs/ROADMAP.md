@@ -27,6 +27,10 @@ Traktor.
 - [ ] Guardar estado inicial y eventos con tiempo y beat musical.
 - [x] Extraer y ordenar en una sola cronología los gestos de mixer,
   transporte y transición de una toma.
+- [x] Revisar la referencia antes de publicar: eliminar, dividir/unir gestos y
+  etiquetar fases pedagógicas.
+- [x] Validar la publicación: acciones, PLAY inicial de Deck A y al menos una
+  fase definida por el profesor.
 - [ ] Interpretar landmarks de alto nivel: entrada, bass swap, FX y salida.
 - [x] Grabar un student attempt guiado y vinculado a la lección.
 - [x] Mostrar una consigna actual y una próxima sin revelar la cronología completa.

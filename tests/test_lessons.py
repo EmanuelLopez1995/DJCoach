@@ -23,8 +23,10 @@ from djcoach.lessons import (
     delete_event,
     merge_with_next,
     prepare_review_timeline,
+    publish_validation_errors,
     set_event_phase,
     split_gesture,
+    summarize_phases,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -335,6 +337,32 @@ class LessonDomainTests(unittest.TestCase):
         self.assertEqual(len(features["timeline"]), 2)
         self.assertTrue(delete_event(features, second_id))
         self.assertEqual(len(features["timeline"]), 1)
+
+    def test_review_phase_summary_and_publish_validation_require_anchor_and_phase(self) -> None:
+        features = {
+            "timeline": [
+                {
+                    "type": "transport_change",
+                    "section": "deck_a",
+                    "control": "play",
+                    "active": True,
+                    "elapsed_seconds": 0.0,
+                },
+                {
+                    "type": "control_gesture",
+                    "section": "deck_b",
+                    "control": "low",
+                    "elapsed_seconds": 4.0,
+                    "phase": "Bass Swap",
+                },
+            ]
+        }
+        summary = summarize_phases(features)
+
+        self.assertEqual([group["phase"] for group in summary], ["Sin fase", "Bass Swap"])
+        self.assertEqual(publish_validation_errors(features), [])
+        features["timeline"][1]["phase"] = "Sin fase"
+        self.assertIn("Asigná al menos una fase", publish_validation_errors(features)[0])
 
     def test_feature_extractor_builds_one_ordered_technique_timeline(self) -> None:
         take = Take(

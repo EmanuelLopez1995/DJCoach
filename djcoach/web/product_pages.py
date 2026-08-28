@@ -30,8 +30,10 @@ from djcoach.lessons import (
     delete_event,
     merge_with_next,
     prepare_review_timeline,
+    publish_validation_errors,
     set_event_phase,
     split_gesture,
+    summarize_phases,
 )
 from djcoach.tracks import TrackCatalog
 
@@ -61,6 +63,7 @@ PRODUCT_CSS = """
 .review-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:18px 0; }.review-metric { padding:15px; border:1px solid #263140; border-radius:12px; background:#0b1118; color:#8fa0b5; }.review-metric strong { display:block; margin-top:5px; color:#f4f7fb; font-size:21px; }
 .review-section { display:grid; gap:10px; margin-top:24px; }.review-section h2 { margin:0; font-size:19px; }.timeline-row { display:grid; grid-template-columns:80px 150px 1fr; gap:12px; align-items:center; padding:11px 13px; border:1px solid #263140; border-radius:10px; background:#0b1118; }.timeline-time { color:#7ddfff; font-family:monospace; }.timeline-target { color:#c8d2df; font-weight:700; }.timeline-detail { color:#94a2b3; }
 .approval-panel { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-top:24px; padding:18px; border:1px solid #31506a; border-radius:14px; background:#0d1821; }.approval-state { color:#aeb9c7; }
+.review-phase-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }.review-phase-card { padding:12px; border:1px solid #334459; border-radius:11px; background:#0b1118; }.review-phase-card strong { display:block; color:#f3f7fb; font-size:14px; }.review-phase-card span { display:block; margin-top:4px; color:#91a2b6; font-size:11px; }.review-phase-card.unassigned { border-color:#715525; }.review-validation { color:#ffcf83; }
 .guidance-card { display:grid; gap:10px; margin:20px 0; padding:24px; border:1px solid #ff4fd8; border-radius:18px; background:linear-gradient(145deg,#18101b,#0b1118); }.guidance-state { color:#ff83e4; font-size:11px; font-weight:800; letter-spacing:.14em; }.guidance-action { min-height:58px; color:#fff; font-size:26px; font-weight:800; line-height:1.25; }.guidance-time { color:#ffb4ed; font-family:monospace; }.next-action { padding:14px; border:1px solid #263140; border-radius:11px; color:#93a1b3; background:#0b1118; }.practice-progress { color:#94a2b3; }
 .moment-shell { display:grid; gap:9px; }.moment-title { color:#8fa0b5; font-size:10px; font-weight:800; letter-spacing:.14em; }.moment-lanes { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }.moment-lane { min-height:72px; padding:11px; border:1px solid #263140; border-radius:11px; background:#0b1118; }.moment-lane.deck-a { border-top:2px solid #36d7ff; }.moment-lane.deck-b { border-top:2px solid #ff4fd8; }.moment-lane.mixer { border-top:2px solid #ffb648; }.lane-title { margin-bottom:7px; color:#8996a7; font-size:10px; font-weight:800; letter-spacing:.1em; }.lane-action { display:flex; gap:7px; margin-top:5px; color:#edf2f7; line-height:1.35; }.lane-action.done { color:#58e5a3; }.lane-action.missed { color:#ffb648; }.moment-empty { color:#657386; }.moment-previous,.moment-next { padding:13px; border:1px solid #263140; border-radius:13px; background:#0b1118; opacity:.86; }.moment-current { padding:16px; border:1px solid #ff4fd8; border-radius:15px; background:#120d16; }
 .guided-product-page { width:min(1280px,calc(100vw - 28px)); padding-top:18px; }
@@ -902,30 +905,39 @@ def _rhythm_hold_trajectory(
     )
 
 
+def _rhythm_phase_labels(status: dict[str, Any]) -> list[str]:
+    """Fases elegidas por el profesor, conservando Preparación como punto cero."""
+    labels = ["Preparación"]
+    for moment in status.get("timeline", []):
+        for action in moment.get("actions", []):
+            phase = str(action.get("phase", "Sin fase"))
+            if phase != "Sin fase" and phase not in labels:
+                labels.append(phase)
+    if len(labels) > 1:
+        return labels
+    return ["Preparación", "Entrada B", "EQ Prep", "Blend", "Bass Swap", "Salida"]
+
+
 def _rhythm_phase_index(status: dict[str, Any]) -> int:
+    labels = _rhythm_phase_labels(status)
     if status.get("state") in {"idle", "waiting_for_play"}:
         return 0
-    intent, _ = _moment_intent(status.get("current"))
-    if intent == "BASS SWAP":
-        return 4
-    if intent.startswith("PREPARÁ") or intent.startswith("LOOP"):
-        return 1
-    if "EQ" in intent or intent == "EFECTO":
-        return 2
-    if intent == "MEZCLA":
-        return 3
     if status.get("state") == "guidance_complete":
-        return 5
+        return len(labels) - 1
+    intent, _ = _moment_intent(status.get("current"))
+    for index, label in enumerate(labels):
+        if intent.casefold() == label.casefold():
+            return index
     total = max(1, int(status.get("total_moments", 1)))
     progress = int(status.get("current_moment_number", 1)) / total
-    return min(5, max(1, round(progress * 4)))
+    return min(len(labels) - 1, max(1, round(progress * (len(labels) - 1))))
 
 
 def render_rhythm_header(lesson_name: str, status: dict[str, Any]) -> str:
     context = status.get("musical_context", {})
     bpm = context.get("bpm")
-    phase_names = ("PREPARACIÓN", "ENTRADA B", "EQ PREP", "BLEND", "BASS SWAP", "SALIDA")
-    phase = phase_names[_rhythm_phase_index(status)]
+    phase_names = _rhythm_phase_labels(status)
+    phase = phase_names[_rhythm_phase_index(status)].upper()
     bpm_text = f"{float(bpm):.1f}" if bpm is not None else "---"
     return (
         '<header class="rhythm-header">'
@@ -939,7 +951,7 @@ def render_rhythm_header(lesson_name: str, status: dict[str, Any]) -> str:
 
 
 def render_rhythm_phases(status: dict[str, Any]) -> str:
-    labels = ("Preparación", "Entrada B", "EQ Prep", "Blend", "Bass Swap", "Salida")
+    labels = _rhythm_phase_labels(status)
     current = _rhythm_phase_index(status)
     phases = "".join(
         f'<div class="rhythm-phase {"completed" if index < current else "current" if index == current else "pending"}">'
@@ -1961,11 +1973,43 @@ def register_product_pages(runtime: Any) -> None:
                     ui.label(
                         "Eliminá ruido, dividí gestos largos, uní gestos consecutivos del mismo control y asigná una fase pedagógica."
                     ).classes("prep-note")
+                    ui.label(
+                        "Mapa de fases de la práctica"
+                    ).classes("product-kicker")
+                    phase_summary = ui.html().classes("review-phase-summary")
                     timeline_editor = ui.column().classes("review-timeline-editor")
 
                     def save_review() -> None:
                         take.features = features
                         take_repository.save(take)
+
+                    def render_phase_summary() -> None:
+                        cards = []
+                        for group in summarize_phases(features):
+                            phase_name = str(group["phase"])
+                            event_count = len(group["events"])
+                            cards.append(
+                                '<article class="review-phase-card '
+                                f'{"unassigned" if phase_name == "Sin fase" else ""}">'
+                                f'<strong>{escape(phase_name)}</strong>'
+                                f'<span>{event_count} {"acción" if event_count == 1 else "acciones"}</span>'
+                                '</article>'
+                            )
+                        phase_summary.set_content(
+                            "".join(cards)
+                            or '<div class="review-phase-card unassigned"><strong>Sin acciones</strong></div>'
+                        )
+
+                    def change_phase(review_id: str, phase_name: str) -> None:
+                        set_event_phase(features, review_id, phase_name)
+                        save_review()
+                        render_phase_summary()
+
+                    def edit_event(operation: Callable[[dict[str, Any], str], bool], review_id: str) -> None:
+                        if operation(features, review_id):
+                            save_review()
+                            render_phase_summary()
+                            render_timeline_editor()
 
                     def render_timeline_editor() -> None:
                         timeline_editor.clear()
@@ -1987,14 +2031,15 @@ def register_product_pages(runtime: Any) -> None:
                                     with ui.column().classes("gap-0"):
                                         ui.label(target).classes("timeline-target")
                                         ui.label(detail).classes("timeline-detail")
-                                    phase = ui.select(PHASES, value=event.get("phase", "Sin fase")).props("dense outlined").classes("review-phase-select")
-                                    phase.on_value_change(lambda change, event_id=event["review_id"]: (set_event_phase(features, event_id, str(change.value)), save_review()))
+                                    phase = ui.select(list(PHASES), value=event.get("phase", "Sin fase")).props("dense outlined").classes("review-phase-select")
+                                    phase.on_value_change(lambda change, event_id=event["review_id"]: change_phase(event_id, str(change.value)))
                                     with ui.row().classes("gap-1"):
-                                        ui.button("ELIMINAR", on_click=lambda event_id=event["review_id"]: (delete_event(features, event_id), save_review(), render_timeline_editor())).props("flat dense color=negative")
+                                        ui.button("ELIMINAR", on_click=lambda event_id=event["review_id"]: edit_event(delete_event, event_id)).props("flat dense color=negative")
                                         if event_type == "control_gesture":
-                                            ui.button("DIVIDIR", on_click=lambda event_id=event["review_id"]: (split_gesture(features, event_id), save_review(), render_timeline_editor())).props("flat dense")
-                                            ui.button("UNIR SIGUIENTE", on_click=lambda event_id=event["review_id"]: (merge_with_next(features, event_id), save_review(), render_timeline_editor())).props("flat dense")
+                                            ui.button("DIVIDIR", on_click=lambda event_id=event["review_id"]: edit_event(split_gesture, event_id)).props("flat dense")
+                                            ui.button("UNIR SIGUIENTE", on_click=lambda event_id=event["review_id"]: edit_event(merge_with_next, event_id)).props("flat dense")
 
+                    render_phase_summary()
                     render_timeline_editor()
 
                 with ui.element("div").classes("approval-panel"):
@@ -2004,6 +2049,11 @@ def register_product_pages(runtime: Any) -> None:
                     )
 
                 def approve_reference() -> None:
+                    errors = publish_validation_errors(features)
+                    if errors:
+                        approval_state.set_text("Falta revisar: " + " ".join(errors))
+                        ui.notify(errors[0], type="warning")
+                        return
                     current_lesson = repository.get(lesson.id)
                     now = datetime.now().astimezone().isoformat(
                         timespec="milliseconds"

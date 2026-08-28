@@ -181,6 +181,35 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("PREPARATE", action_panels)
         self.assertIn("PENDIENTES / MISSED", action_panels)
 
+    def test_rhythm_header_uses_teacher_review_phases(self) -> None:
+        status = {
+            "state": "guiding",
+            "current": {
+                "actions": [
+                    {
+                        "section": "deck_b",
+                        "control": "low",
+                        "instruction": "Abrí LOW de Deck B",
+                        "phase": "Bass Swap",
+                    }
+                ]
+            },
+            "timeline": [
+                {"actions": [{"phase": "Entrada"}]},
+                {"actions": [{"phase": "Bass Swap"}]},
+                {"actions": [{"phase": "Salida"}]},
+            ],
+            "current_moment_number": 2,
+            "total_moments": 3,
+            "musical_context": {"bpm": 136.0},
+        }
+
+        self.assertIn("BASS SWAP", render_rhythm_header("Lección", status))
+        phases = render_rhythm_phases(status)
+        self.assertIn("Entrada", phases)
+        self.assertIn("Bass Swap", phases)
+        self.assertIn("Salida", phases)
+
     def test_rhythm_holding_gesture_stays_at_now_with_live_marker(self) -> None:
         status = {
             "state": "guiding",

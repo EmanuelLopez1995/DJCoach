@@ -555,6 +555,9 @@ class GuidedPracticeRecorder:
                 "steps": active.steps,
                 "moments": active.moments,
                 "outcomes": active.outcomes,
+                # Permite reconstruir después la línea temporal del alumno
+                # en el mismo origen musical que la referencia (PLAY Deck A).
+                "anchor_elapsed_seconds": active.anchor_elapsed_seconds,
                 "completed_count": completed,
                 "total_steps": len(active.steps),
                 "score_percentage": round(

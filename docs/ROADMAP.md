@@ -221,6 +221,8 @@ no se afirma si un deck va adelantado o atrasado.
 - [ ] Vista de estructura/onda de cada canción.
 - [ ] Historial completo de la sesión dentro del frontend.
 - [x] Resumen posterior con resultados por técnica, timing y mejoras sugeridas.
+- [x] Comparador visual por técnica: recorrido MIDI del profesor vs. alumno y
+  estado de botones, alineado con el PLAY inicial.
 - [ ] Gráficos de evolución de volumen, EQ, crossfader y Phase.
 - [ ] Exportación de un informe legible de la sesión.
 

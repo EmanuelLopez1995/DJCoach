@@ -11,6 +11,7 @@ from djcoach.web.product_pages import (
     render_guidance_moment,
     render_lesson_plan,
     render_mixer_calibration,
+    render_technique_comparison,
     render_rhythm_feedback,
     render_rhythm_action_panels,
     render_rhythm_header,
@@ -209,6 +210,49 @@ class WebDashboardTests(unittest.TestCase):
         self.assertIn("Entrada", phases)
         self.assertIn("Bass Swap", phases)
         self.assertIn("Salida", phases)
+
+    def test_technique_comparison_renders_curves_and_button_states(self) -> None:
+        steps = [
+            {
+                "id": "fx_1",
+                "kind": "control",
+                "section": "deck_a",
+                "control": "fx_adjust",
+                "reference_seconds": 4.0,
+                "duration_seconds": 2.0,
+                "start_value": 63,
+                "target_value": 100,
+                "trajectory": [
+                    {"offset_seconds": 0.0, "value": 63},
+                    {"offset_seconds": 2.0, "value": 100},
+                ],
+            },
+            {
+                "id": "loop_1",
+                "kind": "transport",
+                "section": "deck_b",
+                "control": "loop_active",
+                "target_active": True,
+            },
+        ]
+        outcomes = [
+            {"step_id": "fx_1", "status": "completed", "student_seconds": 6.1, "delta_seconds": 0.1},
+            {"step_id": "loop_1", "status": "missed"},
+        ]
+        events = [
+            {"type": "midi_change", "section": "deck_a", "control": "play", "value": 127, "elapsed_seconds": 10.0},
+            {"type": "midi_change", "section": "deck_a", "control": "fx_adjust", "value": 64, "elapsed_seconds": 14.1},
+            {"type": "midi_change", "section": "deck_a", "control": "fx_adjust", "value": 100, "elapsed_seconds": 16.1},
+        ]
+
+        comparison = render_technique_comparison(steps, outcomes, events, 120.0)
+
+        self.assertIn("Profesor vs alumno", comparison)
+        self.assertIn("comparison-teacher", comparison)
+        self.assertIn("comparison-student", comparison)
+        self.assertIn("FX / FILTER", comparison)
+        self.assertIn("LOOP · objetivo ON", comparison)
+        self.assertIn("NO DETECTADO", comparison)
 
     def test_rhythm_holding_gesture_stays_at_now_with_live_marker(self) -> None:
         status = {

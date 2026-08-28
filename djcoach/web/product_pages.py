@@ -123,12 +123,14 @@ PRODUCT_CSS = """
 .rhythm-lane{min-height:310px}.rhythm-card{min-width:118px;max-width:290px;padding:14px 18px;border-radius:11px}.rhythm-card.duration{transform:translateX(-100%);padding-bottom:11px}.rhythm-card.deck-a{border-left-width:4px}.rhythm-card.deck-b{border-left-width:4px}.rhythm-card.mixer{border-left-width:4px}.rhythm-action{font-size:15px;font-weight:950;letter-spacing:.04em}.rhythm-card-duration{display:flex;align-items:center;gap:7px;margin-top:9px}.rhythm-card-duration i{height:4px;flex:1;border-radius:999px;background:currentColor;box-shadow:0 0 8px currentColor}.rhythm-card-duration em{color:#b8c6d6;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.08em;white-space:nowrap}.rhythm-card.deck-a .rhythm-card-duration{color:#36d7ff}.rhythm-card.deck-b .rhythm-card-duration{color:#ff4fd8}.rhythm-card.mixer .rhythm-card-duration{color:#ffb648}.rhythm-prepare-progress{position:relative;height:19px;margin-top:10px;overflow:hidden;border:1px solid #765294;border-radius:999px;background:#0b0d16}.rhythm-prepare-progress i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8b5cf6,#ffbd59);box-shadow:0 0 12px #c46eff;transition:width .1s linear}.rhythm-prepare-progress span{position:relative;z-index:1;display:grid;height:100%;place-items:center;color:#fff;font-size:9px;font-weight:950;letter-spacing:.08em;text-shadow:0 1px 3px #000}@media(max-width:620px){.rhythm-lane{min-height:310px}.rhythm-card{min-width:88px;max-width:180px;padding:10px}.rhythm-action{font-size:12px}}
 .rhythm-card{max-width:420px}
 /* Nota sostenida: cabeza fija y cola horizontal proporcional a su duración. */
-.rhythm-card.duration{transform:translateX(-50%);overflow:visible}.rhythm-hold{position:absolute;z-index:0;top:calc(50% - 44px);right:50%;width:var(--hold-width);height:88px;overflow:visible;opacity:.9}.rhythm-hold .trajectory-guide{fill:none;stroke:#526074;stroke-width:1;stroke-dasharray:3 4}.rhythm-hold .trajectory-path{fill:none;stroke:currentColor;stroke-width:5;filter:drop-shadow(0 0 5px currentColor)}.rhythm-hold .trajectory-point{fill:#f7fbff;stroke:currentColor;stroke-width:2}.rhythm-card-start{position:absolute;z-index:3;top:-23px;left:50%;display:grid;justify-items:center;gap:2px;transform:translateX(-50%);pointer-events:none}.rhythm-card-start i{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;background:#08111b;box-shadow:0 0 10px currentColor}.rhythm-card-start em{color:#f3f7fb;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.1em;text-shadow:0 1px 3px #000}.rhythm-card.duration .rhythm-card-actions,.rhythm-card.duration .rhythm-card-duration{position:relative;z-index:1}.rhythm-card.deck-a .rhythm-hold,.rhythm-card.deck-a .rhythm-card-start{color:#36d7ff}.rhythm-card.deck-b .rhythm-hold,.rhythm-card.deck-b .rhythm-card-start{color:#ff4fd8}.rhythm-card.mixer .rhythm-hold,.rhythm-card.mixer .rhythm-card-start{color:#ffb648}.result-overview{display:grid;grid-template-columns:200px 1fr;gap:14px;margin:18px 0}.result-primary-score,.result-metrics,.result-recommendations,.result-history{padding:16px;border:1px solid #293647;border-radius:14px;background:#0b121c}.result-primary-score{display:grid;place-items:center;text-align:center}.result-primary-score .result-score{line-height:1}.result-primary-score>div{color:#8fa0b5;font-size:9px;font-weight:900;letter-spacing:.1em}.result-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.result-metrics div{padding:12px;border-radius:10px;background:#101924}.result-metrics span{display:block;color:#8293a9;font-size:9px;font-weight:900;letter-spacing:.11em}.result-metrics strong{display:block;margin-top:6px;color:#f5f8fc;font-size:20px}.result-recommendations{display:grid;gap:8px;margin:12px 0}.result-section-title{color:#8ddfff;font-size:10px;font-weight:950;letter-spacing:.13em}.result-recommendation{padding:10px 12px;border-left:3px solid #ffbd59;border-radius:7px;background:#17130d;color:#dfd1ad;font-size:13px}.result-row{grid-template-columns:34px 1fr auto}.result-row.success{border-color:#276c4e}.result-row.warning{border-color:#715525}.result-row.problem{border-color:#75363a}.result-row-feedback{margin-top:3px;color:#91a1b5;font-size:11px}.result-verdict{font-size:11px;font-weight:950;letter-spacing:.08em}.result-verdict.success{color:#58e5a3}.result-verdict.warning{color:#ffbd59}.result-verdict.problem{color:#ff7670}.result-history{display:grid;gap:7px;margin-top:16px;color:#aebdce;font-size:12px}@media(max-width:700px){.result-overview{grid-template-columns:1fr}.result-metrics{grid-template-columns:1fr}.result-row{grid-template-columns:28px 1fr}.result-verdict{grid-column:2}}
+.rhythm-card.duration{transform:translateX(-50%);overflow:visible}.rhythm-hold{position:absolute;z-index:0;top:calc(50% - 44px);right:50%;width:var(--hold-width);height:88px;overflow:visible;opacity:.9}.rhythm-hold .trajectory-guide{fill:none;stroke:#526074;stroke-width:1px;vector-effect:non-scaling-stroke;stroke-dasharray:3 4}.rhythm-hold .trajectory-path{fill:none;stroke:currentColor;stroke-width:2.5px;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 3px currentColor)}.rhythm-hold .trajectory-point{fill:#f7fbff;stroke:currentColor;stroke-width:2px;vector-effect:non-scaling-stroke}.rhythm-card-start{position:absolute;z-index:3;top:-23px;left:50%;display:grid;justify-items:center;gap:2px;transform:translateX(-50%);pointer-events:none}.rhythm-card-start i{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;background:#08111b;box-shadow:0 0 10px currentColor}.rhythm-card-start em{color:#f3f7fb;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.1em;text-shadow:0 1px 3px #000}.rhythm-card.duration .rhythm-card-actions,.rhythm-card.duration .rhythm-card-duration{position:relative;z-index:1}.rhythm-card.deck-a .rhythm-hold,.rhythm-card.deck-a .rhythm-card-start{color:#36d7ff}.rhythm-card.deck-b .rhythm-hold,.rhythm-card.deck-b .rhythm-card-start{color:#ff4fd8}.rhythm-card.mixer .rhythm-hold,.rhythm-card.mixer .rhythm-card-start{color:#ffb648}.result-overview{display:grid;grid-template-columns:200px 1fr;gap:14px;margin:18px 0}.result-primary-score,.result-metrics,.result-recommendations,.result-history{padding:16px;border:1px solid #293647;border-radius:14px;background:#0b121c}.result-primary-score{display:grid;place-items:center;text-align:center}.result-primary-score .result-score{line-height:1}.result-primary-score>div{color:#8fa0b5;font-size:9px;font-weight:900;letter-spacing:.1em}.result-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.result-metrics div{padding:12px;border-radius:10px;background:#101924}.result-recommendations{display:grid;gap:8px;margin:12px 0}.result-section-title{color:#8ddfff;font-size:10px;font-weight:950;letter-spacing:.13em}.result-recommendation{padding:10px 12px;border-left:3px solid #ffbd59;border-radius:7px;background:#17130d;color:#dfd1ad;font-size:13px}.result-row{grid-template-columns:34px 1fr auto}.result-row.success{border-color:#276c4e}.result-row.warning{border-color:#715525}.result-row.problem{border-color:#75363a}.result-row-feedback{margin-top:3px;color:#91a1b5;font-size:11px}.result-verdict{font-size:11px;font-weight:950;letter-spacing:.08em}.result-verdict.success{color:#58e5a3}.result-verdict.warning{color:#ffbd59}.result-verdict.problem{color:#ff7670}.result-history{display:grid;gap:7px;margin-top:16px;color:#aebdce;font-size:12px}@media(max-width:700px){.result-overview{grid-template-columns:1fr}.result-metrics{grid-template-columns:1fr}.result-row{grid-template-columns:28px 1fr}.result-verdict{grid-column:2}}
+.technique-comparison{display:grid;gap:14px;margin:24px 0;padding:20px;border:1px solid #31506a;border-radius:16px;background:radial-gradient(circle at 100% 0,#36d7ff12,transparent 38%),#0b121c}.comparison-heading{display:flex;justify-content:space-between;gap:18px;align-items:end}.comparison-heading>div:first-child>span,.comparison-section{color:#72dffb;font-size:10px;font-weight:950;letter-spacing:.13em}.comparison-heading h2{margin:5px 0;color:#f5f8fc;font-size:24px}.comparison-heading p{max-width:680px;margin:0;color:#9cabbc;font-size:13px;line-height:1.45}.comparison-legend{display:flex;gap:7px;align-items:center;white-space:nowrap;color:#aebdce;font-size:11px;font-weight:800}.comparison-legend i,.comparison-legend b{width:26px;height:4px;border-radius:999px;background:#6d7b8d}.comparison-legend b{background:#36d7ff;box-shadow:0 0 8px #36d7ff}.comparison-controls{display:grid;gap:10px}.comparison-row{border:1px solid #2b394b;border-radius:12px;background:#101924}.comparison-control{padding:13px}.comparison-control header{display:flex;justify-content:space-between;gap:12px;align-items:center}.comparison-control header strong{display:block;margin-top:2px;color:#f1f5fb;font-size:15px}.comparison-timing{padding:5px 8px;border-radius:999px;background:#123222;color:#74e7ab;font-size:10px;font-weight:950;letter-spacing:.07em}.comparison-timing.missed,.comparison-button-result.missed{background:#381920;color:#ff9c96}.comparison-chart{display:grid;grid-template-columns:42px minmax(0,1fr);grid-template-rows:1fr 1fr;align-items:center;gap:8px;margin-top:11px;color:#8191a6;font-size:9px;font-weight:900}.comparison-chart>span:first-child{grid-column:1;grid-row:1}.comparison-chart>span:last-child{grid-column:1;grid-row:2;align-self:end}.comparison-chart svg{grid-column:2;grid-row:1/3;display:block;width:100%;min-width:0;height:112px;border-radius:8px;background:#091019}.comparison-grid{fill:none;stroke:#263546;stroke-width:1}.comparison-teacher{fill:none;stroke:#6b7789;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:.85}.comparison-student{fill:none;stroke:#36d7ff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px #36d7ff)}.comparison-control footer{display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:9px;color:#91a1b5;font-size:10px;font-weight:750}.comparison-control footer span:nth-child(2){color:#55defc}.comparison-control footer em{margin-left:auto;color:#d0adff;font-style:normal}.comparison-buttons{display:grid;gap:8px;padding-top:3px}.comparison-buttons h3{margin:0;color:#94a5b9;font-size:10px;letter-spacing:.13em}.comparison-button{display:grid;grid-template-columns:105px 1fr auto;gap:10px;align-items:center;padding:10px 12px}.comparison-button strong{color:#e9f0f8;font-size:13px}.comparison-button-result{padding:5px 8px;border-radius:999px;background:#123222;color:#74e7ab;font-size:10px;font-weight:900}@media(max-width:700px){.comparison-heading{display:grid}.comparison-button{grid-template-columns:1fr}.comparison-button-result{width:max-content}.comparison-control footer em{margin-left:0}}
 /* The duration tails use container units so they match the beat scale. */
 .rhythm-lane { container-type: inline-size; }
 .rhythm-card.holding { z-index:5; opacity:1 !important; border-color:#f8fbff; background:#1c1830; box-shadow:0 0 28px #ff4fd899; }
 .rhythm-card.holding .rhythm-hold { opacity:1; }
 .rhythm-hold .trajectory-live { fill:#fff; stroke:currentColor; stroke-width:3; filter:drop-shadow(0 0 6px currentColor); }
+.result-metrics div{padding:12px;border-radius:10px;background:#101924}.result-metrics span{display:block;color:#8293a9;font-size:9px;font-weight:900;letter-spacing:.11em}.result-metrics strong{display:block;margin-top:6px;color:#f5f8fc;font-size:20px}
 """
 
 
@@ -866,7 +868,10 @@ def _rhythm_gesture_duration(action: dict[str, Any], bpm: float) -> float:
 
 
 def _rhythm_hold_trajectory(
-    action: dict[str, Any], duration_beats: float, live_value: int | None = None
+    action: dict[str, Any],
+    duration_beats: float,
+    live_value: int | None = None,
+    progress_hint: float | None = None,
 ) -> str:
     """Nota sostenida: la card es inicio y la cola apunta al objetivo."""
     start = int(action.get("start_value", action.get("target_value", 63)))
@@ -880,14 +885,64 @@ def _rhythm_hold_trajectory(
 
     start_y = y_position(start_percent)
     target_y = y_position(target_percent)
+    duration_seconds = max(0.001, float(action.get("duration_seconds", 0.0)))
+    raw_trajectory = [
+        (float(point["offset_seconds"]), int(point["value"]))
+        for point in action.get("trajectory", [])
+        if isinstance(point, dict)
+        and point.get("offset_seconds") is not None
+        and point.get("value") is not None
+    ]
+    if not raw_trajectory:
+        raw_trajectory = [(0.0, start), (duration_seconds, target)]
+    raw_trajectory.sort(key=lambda item: item[0])
+    # La card está a la derecha (inicio) y la cola avanza hacia la izquierda
+    # (final). Invertimos el tiempo para que los picos y valles reales del
+    # profesor se lean desde la card hacia el objetivo.
+    if len(raw_trajectory) > 42:
+        stride = max(1, len(raw_trajectory) // 42)
+        raw_trajectory = raw_trajectory[::stride]
+        if raw_trajectory[-1][0] < duration_seconds:
+            raw_trajectory.append((duration_seconds, target))
+    trajectory_path = " ".join(
+        f'{"M" if index == 0 else "L"}'
+        f'{100 - max(0.0, min(duration_seconds, offset)) / duration_seconds * 100:g} '
+        f'{y_position(round(max(0, min(127, value)) / 127 * 100))}'
+        for index, (offset, value) in enumerate(reversed(raw_trajectory))
+    )
     live_marker = ""
-    if live_value is not None and target != start:
+    monotonic = all(
+        right[1] >= left[1]
+        for left, right in zip(raw_trajectory, raw_trajectory[1:])
+    ) or all(
+        right[1] <= left[1]
+        for left, right in zip(raw_trajectory, raw_trajectory[1:])
+    )
+    if live_value is not None and target != start and monotonic:
         completion = (int(live_value) - start) / (target - start)
         completion = max(0.0, min(1.0, completion))
         live_percent = round(max(0, min(127, int(live_value))) / 127 * 100)
         live_marker = (
             '<circle class="trajectory-live" '
             f'cx="{100 - completion * 100:.1f}" '
+            f'cy="{y_position(live_percent)}" r="5" />'
+        )
+    elif live_value is not None and progress_hint is not None:
+        # En un FX que vuelve a pasar por el mismo valor, elegimos el tramo
+        # más cercano al momento musical actual. Así el punto sigue al alumno
+        # sin saltar a otra subida/bajada idéntica de la secuencia.
+        expected_offset = max(0.0, min(1.0, progress_hint)) * duration_seconds
+        offset, _value = min(
+            raw_trajectory,
+            key=lambda point: (
+                abs(point[1] - int(live_value)) * 4
+                + abs(point[0] - expected_offset) / duration_seconds * 25
+            ),
+        )
+        live_percent = round(max(0, min(127, int(live_value))) / 127 * 100)
+        live_marker = (
+            '<circle class="trajectory-live" '
+            f'cx="{100 - offset / duration_seconds * 100:.1f}" '
             f'cy="{y_position(live_percent)}" r="5" />'
         )
     return (
@@ -897,7 +952,7 @@ def _rhythm_hold_trajectory(
         '<path class="trajectory-guide" d="M0 50 H100" />'
         # El extremo derecho toca la card: es el valor con el que se empieza.
         # Hacia la izquierda avanza la cola hasta el objetivo del profesor.
-        f'<path class="trajectory-path" d="M0 {target_y} L100 {start_y}" />'
+        f'<path class="trajectory-path" d="{trajectory_path}" />'
         f'<circle class="trajectory-point" cx="0" cy="{target_y}" r="4" />'
         f'<circle class="trajectory-point" cx="100" cy="{start_y}" r="4" />'
         f'{live_marker}'
@@ -1044,7 +1099,7 @@ def render_rhythm_lane(status: dict[str, Any]) -> str:
                         else " · EN CURSO"
                     )
                 duration_html = (
-                    f'{_rhythm_hold_trajectory(action, duration_beats, live_value)}'
+                    f'{_rhythm_hold_trajectory(action, duration_beats, live_value, moment.get("hold_progress") if holding else None)}'
                     '<span class="rhythm-card-duration"><i></i>'
                     f'<em>{duration_beats:.1f} BEATS · '
                     f'{round(int(action.get("start_value", action.get("target_value", 63))) / 127 * 100)}% '
@@ -1532,6 +1587,168 @@ def create_lesson_plan_rehearsal(
     dialog.on("hide", lambda _event: stop_listener())
     ui.timer(0.1, refresh)
     return open_dialog
+
+
+def _comparison_anchor_seconds(events: list[dict[str, Any]]) -> float:
+    """Origen musical del intento: el PLAY que inicia la práctica."""
+    for event in events:
+        if (
+            event.get("type") == "midi_change"
+            and event.get("section") == "deck_a"
+            and event.get("control") == "play"
+            and int(event.get("value", 0)) >= 64
+        ):
+            return float(event.get("elapsed_seconds", 0.0))
+    return 0.0
+
+
+def _comparison_svg_path(points: list[tuple[float, int]], duration: float) -> str:
+    if not points:
+        return ""
+    width, left, top, height = 430.0, 8.0, 8.0, 74.0
+    duration = max(0.1, duration)
+    commands = []
+    for index, (offset, value) in enumerate(points):
+        x = left + max(0.0, min(duration, offset)) / duration * width
+        y = top + (1 - max(0, min(127, value)) / 127) * height
+        commands.append(f'{"M" if index == 0 else "L"}{x:.1f},{y:.1f}')
+    return " ".join(commands)
+
+
+def _comparison_teacher_points(step: dict[str, Any]) -> list[tuple[float, int]]:
+    duration = max(0.1, float(step.get("duration_seconds", 0.0)))
+    trajectory = [
+        (float(point["offset_seconds"]), int(point["value"]))
+        for point in step.get("trajectory", [])
+        if isinstance(point, dict)
+        and point.get("offset_seconds") is not None
+        and point.get("value") is not None
+    ]
+    if trajectory:
+        return sorted(trajectory)
+    return [
+        (0.0, int(step.get("start_value", step.get("target_value", 0)))),
+        (duration, int(step.get("target_value", 0))),
+    ]
+
+
+def _comparison_student_points(
+    step: dict[str, Any], outcome: dict[str, Any], events: list[dict[str, Any]], anchor: float
+) -> list[tuple[float, int]]:
+    """Extrae el bloque completo del gesto del alumno que contiene el match."""
+    duration = max(0.1, float(step.get("duration_seconds", 0.0)))
+    end = outcome.get("student_seconds")
+    if end is None:
+        return []
+    samples = sorted(
+        (
+            float(event.get("elapsed_seconds", 0.0)) - anchor,
+            int(event["value"]),
+        )
+        for event in events
+        if event.get("type") == "midi_change"
+        and event.get("section") == step.get("section")
+        and event.get("control") == step.get("control")
+        and event.get("value") is not None
+    )
+    if not samples:
+        return []
+    pivot = min(range(len(samples)), key=lambda index: abs(samples[index][0] - float(end)))
+    first = pivot
+    while first > 0 and samples[first][0] - samples[first - 1][0] <= 2.0:
+        first -= 1
+    last = pivot
+    while last + 1 < len(samples) and samples[last + 1][0] - samples[last][0] <= 2.0:
+        last += 1
+    gesture = samples[first : last + 1]
+    gesture_started = gesture[0][0]
+    gesture_duration = max(0.001, gesture[-1][0] - gesture_started)
+    # Normalizamos la duración del alumno a la del profesor. El gráfico
+    # compara la forma del gesto; la diferencia temporal se comunica en el
+    # badge de beats sin recortar el recorrido del alumno.
+    samples = [
+        ((sample_time - gesture_started) / gesture_duration * duration, value)
+        for sample_time, value in gesture
+    ]
+    # Evita SVGs innecesariamente pesados cuando Traktor envía muchos pasos.
+    if len(samples) > 60:
+        stride = max(1, len(samples) // 60)
+        samples = samples[::stride]
+        if samples[-1][0] < duration:
+            samples.append((duration, int(step.get("target_value", 0))))
+    return sorted(samples)
+
+
+def render_technique_comparison(
+    steps: list[dict[str, Any]],
+    outcomes: list[dict[str, Any]],
+    student_events: list[dict[str, Any]],
+    bpm: float | None = None,
+) -> str:
+    """Comparador legible de gestos: forma, objetivo y momento musical."""
+    outcome_by_id = {str(item.get("step_id")): item for item in outcomes}
+    anchor = _comparison_anchor_seconds(student_events)
+    continuous_rows: list[str] = []
+    button_rows: list[str] = []
+    for step in steps:
+        outcome = outcome_by_id.get(str(step.get("id")), {})
+        verdict = str(outcome.get("timing") or outcome.get("status") or "missed").upper()
+        delta_seconds = outcome.get("delta_seconds")
+        timing = "SIN DATO"
+        if delta_seconds is not None and bpm:
+            beats = float(delta_seconds) * float(bpm) / 60.0
+            timing = "A TIEMPO" if abs(beats) < 0.25 else f'{beats:+.1f} BEATS'
+        elif outcome.get("status") == "missed":
+            timing = "MISSED"
+
+        if step.get("kind") == "control" and float(step.get("duration_seconds", 0.0)) > 0.15:
+            duration = max(0.1, float(step["duration_seconds"]))
+            teacher = _comparison_teacher_points(step)
+            student = _comparison_student_points(step, outcome, student_events, anchor)
+            teacher_path = _comparison_svg_path(teacher, duration)
+            student_path = _comparison_svg_path(student, duration)
+            direction = "↑" if int(step.get("target_value", 0)) > int(step.get("start_value", 0)) else "↓"
+            continuous_rows.append(
+                '<article class="comparison-row comparison-control">'
+                '<header><div>'
+                f'<span class="comparison-section">{escape(section_label(str(step.get("section"))))}</span>'
+                f'<strong>{escape(CONTROL_LABELS.get(str(step.get("control")), str(step.get("control", "")).upper()))} {direction}</strong>'
+                '</div>'
+                f'<span class="comparison-timing {"missed" if timing == "MISSED" else ""}">{escape(timing)}</span></header>'
+                '<div class="comparison-chart"><span>100%</span>'
+                '<svg viewBox="0 0 446 90" preserveAspectRatio="none" aria-label="Recorrido comparado">'
+                '<path class="comparison-grid" d="M8 8H438 M8 45H438 M8 82H438" />'
+                f'<path class="comparison-teacher" d="{teacher_path}" />'
+                f'{f"<path class=\"comparison-student\" d=\"{student_path}\" />" if student_path else ""}'
+                '</svg><span>0%</span></div>'
+                '<footer><span>PROFESOR · recorrido objetivo</span>'
+                f'<span>ALUMNO · {"recorrido detectado" if student_path else "sin recorrido detectado"}</span>'
+                f'<em>{float(step.get("duration_seconds", 0.0)) * float(bpm or 0) / 60:.1f} beats · MIDI {step.get("start_value", "---")} → {step.get("target_value", "---")}</em></footer>'
+                '</article>'
+            )
+        elif step.get("kind") in {"transport", "selector"}:
+            target = "ON" if step.get("kind") == "transport" and step.get("target_active") else (
+                "OFF" if step.get("kind") == "transport" else str(step.get("target_value", "---"))
+            )
+            student_state = "HECHO" if outcome.get("status") == "completed" else "NO DETECTADO"
+            button_rows.append(
+                '<article class="comparison-row comparison-button">'
+                f'<span class="comparison-section">{escape(section_label(str(step.get("section"))))}</span>'
+                f'<strong>{escape(CONTROL_LABELS.get(str(step.get("control")), str(step.get("control", "")).upper()))} · objetivo {escape(target)}</strong>'
+                f'<span class="comparison-button-result {"ok" if student_state == "HECHO" else "missed"}">{student_state} · {escape(timing)}</span>'
+                '</article>'
+            )
+    if not continuous_rows and not button_rows:
+        return '<section class="technique-comparison"><p>No hay datos comparables de esta práctica.</p></section>'
+    return (
+        '<section class="technique-comparison"><div class="comparison-heading">'
+        '<div><span>COMPARADOR DE TÉCNICA</span><h2>Profesor vs alumno</h2>'
+        '<p>La línea tenue es el recorrido original; la intensa, tu recorrido. El timing se mide aparte en beats.</p></div>'
+        '<div class="comparison-legend"><i></i> Profesor <b></b> Alumno</div></div>'
+        f'<div class="comparison-controls">{"".join(continuous_rows)}</div>'
+        f'{"<div class=\"comparison-buttons\"><h3>BOTONES Y ESTADOS</h3>" + "".join(button_rows) + "</div>" if button_rows else ""}'
+        '</section>'
+    )
 
 
 def register_product_pages(runtime: Any) -> None:
@@ -2486,6 +2703,15 @@ def register_product_pages(runtime: Any) -> None:
                 ui.label("PARA EL PRÓXIMO INTENTO").classes("result-section-title")
                 for recommendation in evaluation.get("recommendations", []):
                     ui.label(recommendation).classes("result-recommendation")
+            ui.html(
+                render_technique_comparison(
+                    features.get("steps", []),
+                    features.get("outcomes", []),
+                    attempt.events,
+                    evaluation.get("bpm"),
+                ),
+                sanitize=False,
+            )
             with ui.element("section").classes("review-section"):
                 ui.label("DESGLOSE DE LA TÉCNICA").classes("result-section-title")
                 for item in evaluation.get("results", []):
